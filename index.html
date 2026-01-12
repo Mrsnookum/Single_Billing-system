@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wi-Fi Portal - Snookum ISP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .package-card { transition: all 0.3s ease; border-radius: 15px; border: 2px solid #e2e8f0; cursor: pointer; }
+        .package-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: #3b82f6; }
+        .package-card.selected { border-color: #2563eb; background-color: #eff6ff; }
+        .btn-primary { background-color: #2563eb; transition: all 0.3s; }
+        .btn-primary:hover { background-color: #1d4ed8; transform: scale(1.02); }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-left: 8px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-[#f8fafc] font-sans text-gray-800">
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-black text-blue-900 mb-2 tracking-tight">WIFI INTERNET</h1>
+            <p class="text-green-600 font-bold mb-4 tracking-wide uppercase text-sm">● M-PESA STK PUSH ACTIVE</p>
+        </div>
+
+        <h2 class="text-xl font-bold text-blue-900 mb-6 text-center">Step 1: Select your Internet Plan</h2>
+        <div id="package-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"></div>
+
+        <div class="max-w-md mx-auto mb-12 bg-white p-8 rounded-2xl border border-blue-100 shadow-xl">
+            <h2 class="text-center font-bold text-blue-900 mb-4">Step 2: Enter M-Pesa Number</h2>
+            <div class="space-y-4">
+                <input type="text" id="phone" placeholder="07xx... or 254..." 
+                       class="w-full p-4 border border-gray-300 rounded-xl text-center text-xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                
+                <button onclick="initiatePayHeroSTK()" id="payBtn" class="w-full btn-primary text-white py-4 rounded-xl font-bold text-lg shadow-md">
+                    Pay via M-Pesa
+                </button>
+            </div>
+        </div>
+
+        <div class="max-w-md mx-auto mb-12 bg-white p-8 rounded-2xl border border-blue-100 shadow-xl">
+            <h2 class="text-center font-bold text-blue-900 mb-4">Already have a code?</h2>
+            <div class="flex gap-2">
+                <input type="text" id="accessCode" placeholder="ENTER CODE" 
+                       class="flex-1 p-3 rounded-lg border border-gray-200 text-center font-mono text-lg uppercase tracking-widest outline-none focus:border-blue-500 bg-gray-50">
+                <button onclick="connectToWifi()" id="connectBtn" class="btn-primary text-white px-8 py-3 rounded-lg font-bold shadow-lg">
+                    Connect
+                </button>
+            </div>
+            <p id="statusMsg" class="text-center mt-4 text-sm font-semibold min-h-[24px]"></p>
+        </div>
+    </div>
+
+    <script>
+        // Updated URL for your Apps Script deployment
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxCZ_myNjhr9dXk66qH5PTbeJzKqrEa_vT5NK-jhV6HTx4OmPqVONbV-4g9ZVB5wBc/exec';
+        let selectedPackage = null;
+
+        const packages = [
+            { name: "1 Hour Access", desc: "Access for 1 hour", price: 1 },
+            { name: "2 Hour Access", desc: "Access for 2 hours", price: 15 },
+            { name: "12 Hour Unlimited", desc: "Unlimited access for 12 hours", price: 30 },
+            { name: "1 Day Unlimited", desc: "Unlimited access for 1 day", price: 50 },
+            { name: "3GB Daily", desc: "3GB data for 24 hours", price: 60 },
+            { name: "4GB Daily", desc: "4GB data for 24 hours", price: 70 },
+            { name: "5GB - 3 Days", desc: "5GB data valid for 3 days", price: 100 },
+            { name: "10GB - 7 Days", desc: "10GB data valid for 7 days", price: 150 },
+            { name: "1 Week Unlimited", desc: "Unlimited access for 7 days", price: 200 },
+            { name: "Weekend Unlimited", desc: "Fri - Sun unlimited", price: 250 },
+            { name: "2 Weeks Unlimited", desc: "14 days unlimited", price: 500 },
+            { name: "1 Month Unlimited", desc: "30 days unlimited", price: 850 }
+        ];
+
+        // Render Packages
+        const container = document.getElementById('package-container');
+        packages.forEach(pkg => {
+            const cardId = `pkg-${pkg.name.replace(/\s+/g, '')}`;
+            container.innerHTML += `
+                <div id="${cardId}" class="package-card bg-white p-6 text-center shadow-sm" onclick="selectPkg('${pkg.name}', ${pkg.price}, '${cardId}')">
+                    <h3 class="text-xl font-bold text-blue-900">${pkg.name}</h3>
+                    <p class="text-gray-500 my-2 text-xs">${pkg.desc}</p>
+                    <p class="text-2xl font-black text-gray-900 mb-4 font-mono">KES ${pkg.price}</p>
+                    <div class="text-sm font-bold text-blue-500 uppercase tracking-tighter">Click to Select</div>
+                </div>
+            `;
+        });
+
+        function selectPkg(name, price, id) {
+            selectedPackage = { name, price };
+            document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById(id).classList.add('selected');
+            document.getElementById('phone').focus();
+            updateStatus(`Selected: ${name}. Enter M-Pesa number to pay.`, "blue");
+        }
+
+        async function initiatePayHeroSTK() {
+            const phoneInput = document.getElementById('phone').value.trim();
+            
+            if (!selectedPackage) return updateStatus("Please select a package first!", "red");
+            if (!phoneInput || phoneInput.length < 10) return updateStatus("Please enter a valid phone number.", "red");
+
+            updateStatus("Requesting PIN prompt... <div class='loader'></div>", "blue");
+
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ 
+                        action: "registerPayment", 
+                        phone: phoneInput, 
+                        package: selectedPackage.name 
+                    })
+                });
+                
+                const result = await response.json();
+
+                if(result.status === "success") {
+                    updateStatus("Check phone for PIN prompt! Waiting for payment...", "green");
+                    pollForCode(phoneInput);
+                } else {
+                    updateStatus("STK Error: " + (result.message || "Try again"), "red");
+                }
+            } catch (e) {
+                updateStatus("Connection error. Check internet and try again.", "red");
+            }
+        }
+
+        async function pollForCode(phone) {
+            const statusEl = document.getElementById('statusMsg');
+            const codeInput = document.getElementById('accessCode');
+            const cleanPhone = phone.toString().slice(-9); 
+            const startTime = Date.now();
+            
+            const interval = setInterval(async () => {
+                if (Date.now() - startTime > 180000) { 
+                    clearInterval(interval);
+                    updateStatus("Polling timed out. Enter code manually if you paid.", "red");
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${APPS_SCRIPT_URL}?action=checkMyCode&phone=${cleanPhone}`);
+                    const result = await response.json();
+                    
+                    if (result.status === "success") {
+                        clearInterval(interval); 
+                        codeInput.value = result.code; // Populate the code
+                        updateStatus("Payment Verified! Connecting automatically...", "green");
+                        
+                        // AUTO-CONNECT FEATURE: Trigger connect function
+                        setTimeout(() => {
+                            connectToWifi();
+                        }, 1500); 
+                    }
+                } catch (e) {
+                    console.log("Waiting for payment...");
+                }
+            }, 4000); 
+        }
+
+        async function connectToWifi() {
+            const codeInput = document.getElementById('accessCode').value.trim().toUpperCase();
+            const urlParams = new URLSearchParams(window.location.search);
+            const mac = urlParams.get('mac') || "00:00:00:00:00:00"; 
+            
+            if (!codeInput) return updateStatus("Please enter your access code.", "red");
+
+            updateStatus("Connecting... <div class='loader'></div>", "blue");
+            
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "verifyAndConnect", code: codeInput, mac: mac })
+                });
+                const data = await resp.json();
+                
+                if (data.status === "success") {
+                    updateStatus("AUTHENTICATED! Redirecting...", "green");
+                    setTimeout(() => { window.location.href = "https://www.google.com"; }, 2000);
+                } else {
+                    updateStatus(data.message || "Invalid or Expired Code.", "red");
+                }
+            } catch (e) {
+                updateStatus("Connection error.", "red");
+            }
+        }
+
+        function updateStatus(msg, color) {
+            const status = document.getElementById('statusMsg');
+            status.innerHTML = msg;
+            status.style.color = color === "red" ? "#ef4444" : (color === "green" ? "#22c55e" : "#2563eb");
+        }
+    </script>
+</body>
+</html>

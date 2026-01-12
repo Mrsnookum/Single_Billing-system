@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISP Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        @media (max-width: 768px) {
+            .sidebar-hidden { transform: translateX(-100%); }
+        }
+        .chart-cage { position: relative; height: 280px; width: 100%; }
+        .status-active { background-color: #dcfce7; color: #166534; } 
+        .status-expired { background-color: #fee2e2; color: #991b1b; } 
+        .status-disabled { background-color: #fef3c7; color: #92400e; }
+    </style>
+</head>
+<body class="bg-[#f8fafc] font-sans text-slate-900 overflow-x-hidden">
+
+    <div id="loginOverlay" class="fixed inset-0 bg-slate-900 z-[200] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md text-center">
+            <h1 class="text-2xl font-black text-slate-900 mb-2">RESTRICTED ACCESS</h1>
+            <p class="text-slate-500 mb-6">Enter Admin Password to continue</p>
+            <input type="password" id="adminPassInput" placeholder="••••••••" 
+                   class="w-full p-4 border border-slate-200 rounded-xl mb-4 text-center text-xl tracking-widest outline-none focus:ring-2 focus:ring-blue-500">
+            <button onclick="checkLogin()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold hover:bg-slate-800 transition">Login</button>
+            <p id="loginError" class="text-red-500 mt-4 font-semibold hidden">Incorrect Password.</p>
+        </div>
+    </div>
+
+    <div class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center fixed top-0 w-full z-[100]">
+        <h1 class="font-black tracking-tight">WIFI ADMIN</h1>
+        <button onclick="toggleSidebar()"><i class="fas fa-bars text-xl"></i></button>
+    </div>
+
+    <div id="mainDashboard" class="flex min-h-screen blur-md opacity-0 transition-all duration-500 pointer-events-none pt-14 md:pt-0">
+        
+        <div id="sidebar" class="fixed md:relative z-[110] w-64 bg-slate-900 text-slate-300 p-6 shadow-xl flex flex-col min-h-screen transition-transform duration-300 sidebar-hidden md:transform-none">
+            <h1 class="text-white text-2xl font-black mb-10 tracking-tight hidden md:block">WIFI ADMIN</h1>
+            <nav class="space-y-2 flex-1">
+                <button id="btn-dashboard" onclick="switchTab('dashboard')" class="nav-btn w-full flex items-center space-x-3 p-3 bg-blue-600 text-white rounded-xl transition">
+                    <i class="fas fa-chart-line w-5"></i> <span>Dashboard</span>
+                </button>
+                <button id="btn-transactions" onclick="switchTab('transactions')" class="nav-btn w-full flex items-center space-x-3 p-3 hover:bg-slate-800 rounded-xl transition">
+                    <i class="fas fa-history w-5"></i> <span>Transactions</span>
+                </button>
+                <button id="btn-mikrotik" onclick="switchTab('mikrotik')" class="nav-btn w-full flex items-center space-x-3 p-3 hover:bg-slate-800 rounded-xl transition">
+                    <i class="fas fa-server w-5"></i> <span>MikroTik Setup</span>
+                </button>
+                <button onclick="showManualModal()" class="w-full flex items-center space-x-3 p-3 hover:bg-slate-800 rounded-xl transition text-green-400">
+                    <i class="fas fa-plus-circle w-5"></i> <span>Manual Voucher</span>
+                </button>
+            </nav>
+            <button onclick="location.reload()" class="flex items-center space-x-3 p-3 text-red-400 hover:bg-red-500/10 rounded-xl transition mt-auto">
+                <i class="fas fa-sign-out-alt w-5"></i> <span>Logout</span>
+            </button>
+        </div>
+
+        <div class="flex-1 p-4 md:p-8 overflow-y-auto">
+            <div id="statusAlert" class="fixed top-20 right-4 z-[150] px-4 py-2 rounded-lg text-sm font-bold hidden text-white shadow-lg"></div>
+
+            <div id="dashboardTab" class="tab-content active">
+                <h2 class="text-2xl md:text-3xl font-bold mb-8">ISP Overview</h2>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-8">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                        <p class="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Total Sales</p>
+                        <h3 id="totalSales" class="text-lg font-black text-blue-600">KES 0</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-green-500 shadow-md">
+                        <p class="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Income Today</p>
+                        <h3 id="incomeToday" class="text-lg font-black text-green-600">KES 0</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                        <p class="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Active Users</p>
+                        <h3 id="activeUsers" class="text-lg font-black text-slate-800">0</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hidden md:block">
+                         <p class="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Popular Plan</p>
+                         <h3 id="popularPkg" class="text-[10px] font-black text-slate-800 truncate">Loading...</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                        <p class="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Total Txns</p>
+                        <h3 id="totalCount" class="text-lg font-black text-slate-800">0</h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Package Performance</h4>
+                        <div class="chart-cage">
+                            <canvas id="pkgChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                        <h4 class="font-bold mb-4 text-slate-600 uppercase text-xs">Live Feed</h4>
+                        <div id="activityFeed" class="space-y-3"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-4 border-b flex flex-col md:row justify-between gap-4">
+                        <h4 class="font-bold text-slate-700">User Management</h4>
+                        <input type="text" id="adminSearch" onkeyup="filterTable('adminTableBody')" placeholder="Search codes..." class="p-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-xs">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[600px]">
+                            <thead class="bg-slate-50 border-b">
+                                <tr>
+                                    <th class="p-4 font-bold text-slate-600 text-xs uppercase">User</th>
+                                    <th class="p-4 font-bold text-slate-600 text-xs uppercase">Package</th>
+                                    <th class="p-4 font-bold text-slate-600 text-xs uppercase text-center">Code</th>
+                                    <th class="p-4 font-bold text-slate-600 text-xs uppercase">Status</th>
+                                    <th class="p-4 font-bold text-slate-600 text-xs uppercase text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="transactionsTab" class="tab-content">
+                <h2 class="text-2xl md:text-3xl font-bold mb-8">Transaction History</h2>
+                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+                    <div class="p-4 border-b">
+                        <input type="text" onkeyup="filterTable('txnTableBody')" placeholder="Search records..." class="w-full max-w-sm p-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left min-w-[600px]">
+                            <thead class="bg-slate-50 border-b text-[10px] uppercase text-slate-500 font-bold">
+                                <tr>
+                                    <th class="p-4">Time/Date</th>
+                                    <th class="p-4">Phone Number</th>
+                                    <th class="p-4">Access Plan</th>
+                                    <th class="p-4">Revenue</th>
+                                    <th class="p-4">Reference</th>
+                                </tr>
+                            </thead>
+                            <tbody id="txnTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="mikrotikTab" class="tab-content">
+                <h2 class="text-2xl md:text-3xl font-bold mb-8">MikroTik Router Configuration</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                        <h3 class="text-lg font-bold mb-6">Connection Details</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-400 uppercase">Cloud DNS / IP</label>
+                                <input type="text" id="mt_dns" placeholder="xxxxxxx.sn.mynetname.net" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-400 uppercase">API Username</label>
+                                <input type="text" id="mt_user" value="billing_api" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-400 uppercase">API Password</label>
+                                <input type="password" id="mt_pass" value="12345678" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="flex flex-col space-y-2">
+                                <button onclick="saveAndGenerateScript()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold hover:bg-slate-800 transition">Save & Generate Script</button>
+                                <button onclick="testConnection()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold hover:bg-blue-700 transition">
+                                    <i class="fas fa-plug mr-2"></i> Test Connection
+                                </button>
+                            </div>
+                            <div id="conn_status" class="mt-4 text-center text-sm font-bold hidden"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 p-8 rounded-3xl shadow-sm text-green-400 font-mono text-xs overflow-hidden flex flex-col">
+                        <div class="flex justify-between items-center mb-4 text-slate-500">
+                            <span>ROUTEROS SCRIPT</span>
+                            <button onclick="copyMTCode()" class="hover:text-white"><i class="fas fa-copy"></i> Copy</button>
+                        </div>
+                        <pre id="mt_script_output" class="whitespace-pre-wrap flex-1"># Fill connection details and save to view script...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="successModal" class="fixed inset-0 bg-slate-900/80 hidden z-[300] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center">
+            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl animate-bounce">
+                <i class="fas fa-check"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-1">Voucher Ready!</h3>
+            <div class="bg-slate-50 p-4 rounded-2xl mb-6">
+                <p id="displayCode" class="text-4xl font-black text-blue-600 tracking-widest mb-2">------</p>
+                <p id="displayExpiry" class="text-[10px] text-slate-400 font-mono"></p>
+            </div>
+            <button onclick="closeSuccessModal()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold">Done</button>
+        </div>
+    </div>
+
+    <div id="manualModal" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black">New Voucher</h2>
+                <button onclick="hideManualModal()"><i class="fas fa-times text-slate-400"></i></button>
+            </div>
+            <select id="mPkg" class="w-full p-4 border rounded-xl mb-4 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                <option value="1 Hour Access">1 Hour Access (KES 10)</option>
+                <option value="2 Hour Access">2 Hour Access (KES 15)</option>
+                <option value="12 Hour Unlimited">12 Hour Unlimited (KES 30)</option>
+                <option value="1 Day Unlimited">1 Day Unlimited (KES 50)</option>
+                <option value="3GB Daily">3GB Daily (KES 60)</option>
+                <option value="4GB Daily">4GB Daily (KES 70)</option>
+                <option value="5GB - 3 Days">5GB - 3 Days (KES 100)</option>
+                <option value="10GB - 7 Days">10GB - 7 Days (KES 150)</option>
+                <option value="1 Week Unlimited">1 Week Unlimited (KES 200)</option>
+                <option value="Weekend Unlimited">Weekend Unlimited (KES 250)</option>
+                <option value="2 Weeks Unlimited">2 Weeks Unlimited (KES 500)</option>
+                <option value="1 Month Unlimited">1 Month Unlimited (KES 850)</option>
+            </select>
+            <input type="text" id="mPhone" placeholder="Phone Number" class="w-full p-4 border rounded-xl mb-6 outline-none focus:ring-2 focus:ring-blue-500">
+            <button onclick="generateManual()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold shadow-lg transform active:scale-95 transition">Generate Code</button>
+        </div>
+    </div>
+
+    <script>
+        // UPDATE: Ensure this matches your latest Apps Script deployment
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxCZ_myNjhr9dXk66qH5PTbeJzKqrEa_vT5NK-jhV6HTx4OmPqVONbV-4g9ZVB5wBc/exec';
+        let chartInstance = null;
+        const ADMIN_PASSWORD = "1234";
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('sidebar-hidden'); }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => {
+                t.classList.remove('active');
+                t.style.display = 'none';
+            });
+            const target = document.getElementById(tabId + 'Tab');
+            if(target) {
+                target.classList.add('active');
+                target.style.display = 'block';
+            }
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('bg-blue-600', 'text-white'));
+            const clickedBtn = document.getElementById('btn-' + tabId);
+            if(clickedBtn) clickedBtn.classList.add('bg-blue-600', 'text-white');
+            if (window.innerWidth < 768) toggleSidebar();
+        }
+
+        async function testConnection() {
+            const statusDiv = document.getElementById('conn_status');
+            statusDiv.classList.remove('hidden', 'text-green-600', 'text-red-600');
+            statusDiv.innerText = "Testing... ⏳";
+            statusDiv.classList.add('block');
+
+            try {
+                const res = await fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "testMTConnection" })
+                });
+                const result = await res.json();
+                
+                if (result.status === "success") {
+                    statusDiv.innerText = "✅ Success: Router is Reachable!";
+                    statusDiv.classList.add('text-green-600');
+                    showStatus("Connection Verified", "bg-green-600");
+                } else {
+                    statusDiv.innerText = "❌ Error: " + result.message;
+                    statusDiv.classList.add('text-red-600');
+                    showStatus("Connection Failed", "bg-red-500");
+                }
+            } catch (e) {
+                statusDiv.innerText = "❌ Network Error: Could not reach Apps Script";
+                statusDiv.classList.add('text-red-600');
+            }
+        }
+
+        async function saveAndGenerateScript() {
+            const dns = document.getElementById('mt_dns').value;
+            const user = document.getElementById('mt_user').value;
+            const pass = document.getElementById('mt_pass').value;
+
+            if(!dns) { showStatus("DNS Required", "bg-red-500"); return; }
+            showStatus("Saving Config...", "bg-blue-600");
+
+            try {
+                const res = await fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "saveRouterConfig", dns, user, pass })
+                });
+                const result = await res.json();
+                if(result.status === "success") {
+                    generateMTScript(user, pass, dns);
+                    showStatus("Config Saved!", "bg-green-600");
+                }
+            } catch (e) { showStatus("Save Failed", "bg-red-500"); }
+        }
+
+        function generateMTScript(user, pass, dns) {
+            const script = `# Configuration for ${dns}
+/user add name="${user}" group=full password="${pass}" comment="Billing API User"
+/ip service set www-ssl disabled=no port=443
+/ip cloud set ddns-enabled=yes
+/ip firewall filter add chain=input protocol=tcp dst-port=443 action=accept comment="Allow Billing API" place-before=0
+
+# ANTI-TETHERING / ANTI-HOTSPOT RULES
+/ip firewall mangle add chain=postrouting action=change-ttl new-ttl=set:1 passthrough=yes comment="Prevent Sharing/Tethering"
+
+# WALLED GARDEN FOR GITHUB & GOOGLE
+/ip hotspot walled-garden add dst-host="*.github.io" action=allow
+/ip hotspot walled-garden add dst-host="*.google.com" action=allow
+/ip hotspot walled-garden add dst-host="*.googleusercontent.com" action=allow`;
+
+            document.getElementById('mt_script_output').innerText = script;
+        }
+
+        function copyMTCode() {
+            const text = document.getElementById('mt_script_output').innerText;
+            navigator.clipboard.writeText(text);
+            showStatus("Copied to Clipboard", "bg-blue-600");
+        }
+
+        function checkLogin() {
+            const input = document.getElementById('adminPassInput').value;
+            if (input === ADMIN_PASSWORD) {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('mainDashboard').classList.remove('blur-md', 'opacity-0', 'pointer-events-none');
+                fetchAdminData();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        async function fetchAdminData() {
+            try {
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=getAdminData`);
+                const data = await response.json();
+                if(data.routerDns) document.getElementById('mt_dns').value = data.routerDns;
+                updateUI(data);
+            } catch (e) { showStatus("Sync Error", "bg-red-500"); }
+        }
+
+        function updateUI(data) {
+            document.getElementById('totalSales').innerText = `KES ${data.totalRevenue}`;
+            document.getElementById('incomeToday').innerText = `KES ${data.incomeToday}`;
+            document.getElementById('activeUsers').innerText = data.activeCount;
+            document.getElementById('popularPkg').innerText = data.popularPlan;
+            document.getElementById('totalCount').innerText = data.totalTransactions;
+
+            document.getElementById('adminTableBody').innerHTML = data.recentTransactions.map(t => {
+                let statusClass = 'status-disabled';
+                if(t.status === 'Active') statusClass = 'status-active';
+                if(t.status === 'Expired') statusClass = 'status-expired';
+
+                return `<tr class="border-b hover:bg-slate-50 transition text-sm">
+                    <td class="p-4 font-medium">${t.phone}</td>
+                    <td class="p-4 text-slate-500">${t.package}</td>
+                    <td class="p-4 font-mono font-bold text-blue-600 tracking-widest text-center">${t.code}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded-full text-[10px] font-black uppercase ${statusClass}">${t.status}</span></td>
+                    <td class="p-4 text-right space-x-1">
+                        <button onclick="adminAction('${t.code}', 'activate')" class="bg-green-500 text-white p-1.5 rounded-lg text-[10px]"><i class="fas fa-play"></i></button>
+                        <button onclick="adminAction('${t.code}', 'deactivate')" class="bg-red-400 text-white p-1.5 rounded-lg text-[10px]"><i class="fas fa-stop"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('txnTableBody').innerHTML = data.allTransactions.map(t => `
+                <tr class="border-b text-xs hover:bg-slate-50 transition">
+                    <td class="p-4 text-slate-400">${t.timestamp}</td>
+                    <td class="p-4 font-bold text-slate-700">${t.phone}</td>
+                    <td class="p-4">${t.package}</td>
+                    <td class="p-4 text-green-600 font-bold">KES ${t.amount || 0}</td>
+                    <td class="p-4 font-mono text-slate-400 text-[10px] tracking-tighter">${t.ref}</td>
+                </tr>`).join('');
+
+            document.getElementById('activityFeed').innerHTML = data.recentTransactions.slice(0, 5).map(t => `
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2">
+                    <div class="text-[10px] font-bold text-slate-700">${t.code}</div>
+                    <div class="text-blue-500 font-bold text-[10px]">+ KES ${t.amount || 0}</div>
+                </div>`).join('');
+            
+            updateChart(data.packageStats);
+        }
+
+        async function generateManual() {
+            const pkg = document.getElementById('mPkg').value;
+            const phone = document.getElementById('mPhone').value || "WALK-IN";
+            
+            showStatus("GENERATING VOUCHER...", "bg-blue-600");
+            hideManualModal();
+
+            try {
+                const res = await fetch(APPS_SCRIPT_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ 
+                        action: "generateManualVoucher", 
+                        package: pkg, 
+                        phone: phone 
+                    })
+                });
+                
+                const result = await res.json();
+                
+                if(result.status === "success") {
+                    document.getElementById('displayCode').innerText = result.code;
+                    document.getElementById('displayExpiry').innerText = "Expires: " + result.expiry;
+                    document.getElementById('successModal').classList.remove('hidden');
+                    showStatus("VOUCHER CREATED", "bg-green-600");
+                    fetchAdminData();
+                } else {
+                    showStatus("FAILED: " + result.message, "bg-red-500");
+                }
+            } catch (e) { 
+                showStatus("NETWORK ERROR", "bg-red-500"); 
+            }
+        }
+
+        async function adminAction(code, type) {
+            showStatus(type.toUpperCase(), "bg-slate-800");
+            try {
+                const res = await fetch(APPS_SCRIPT_URL, { 
+                    method: "POST", 
+                    body: JSON.stringify({ action: type, code: code }) 
+                });
+                if((await res.json()).status === "success") fetchAdminData();
+            } catch (e) { showStatus("Failed", "bg-red-500"); }
+        }
+
+        function filterTable(bodyId) {
+            const tableBody = document.getElementById(bodyId);
+            const tr = tableBody.getElementsByTagName("tr");
+            const input = event.target.value.toUpperCase();
+            for (let i = 0; i < tr.length; i++) {
+                tr[i].style.display = tr[i].textContent.toUpperCase().includes(input) ? "" : "none";
+            }
+        }
+
+        function showStatus(msg, color) {
+            const el = document.getElementById('statusAlert');
+            el.innerText = msg; 
+            el.className = `fixed top-20 right-4 z-[150] px-4 py-2 rounded-lg text-sm font-bold block ${color} shadow-lg`;
+            el.style.display = 'block'; 
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        function updateChart(stats) {
+            const ctx = document.getElementById('pkgChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(stats),
+                    datasets: [{ label: 'Sales Count', data: Object.values(stats), backgroundColor: '#3b82f6', borderRadius: 6 }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } 
+                }
+            });
+        }
+        
+        function closeSuccessModal() { document.getElementById('successModal').classList.add('hidden'); }
+        function showManualModal() { document.getElementById('manualModal').classList.remove('hidden'); }
+        function hideManualModal() { document.getElementById('manualModal').classList.add('hidden'); }
+    </script>
+</body>
+</html>
