@@ -225,6 +225,23 @@
         </div>
     </div>
 
+    <footer class="mt-auto py-8 border-t border-blue-50 bg-white">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <p class="text-slate-400 text-sm font-medium">
+                &copy; 2026 WIFI INTERNET. All Rights Reserved.
+            </p>
+            <p class="mt-2 text-slate-500 text-xs tracking-wide uppercase">
+                Developed by 
+                <a href="https://mrsnookum.github.io/Brighton-Portfolio/" 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   class="font-bold text-blue-600 hover:text-blue-800 transition-colors duration-200">
+                   Brighton the Dev
+                </a>
+            </p>
+        </div>
+    </footer>
+
     <script>
         // UPDATE: Ensure this matches your latest Apps Script deployment
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxCZ_myNjhr9dXk66qH5PTbeJzKqrEa_vT5NK-jhV6HTx4OmPqVONbV-4g9ZVB5wBc/exec';
@@ -298,23 +315,44 @@
             } catch (e) { showStatus("Save Failed", "bg-red-500"); }
         }
 
-        function generateMTScript(user, pass, dns) {
-            const script = `# Configuration for ${dns}
+       function generateMTScript(user, pass, dns) {
+    const script = `# ==========================================
+# MIKROTIK AUTO-CONFIG FOR ISP PORTAL
+# Generated for Cloud DNS: ${dns}
+# ==========================================
+
+# 1. CREATE API USER
 /user add name="${user}" group=full password="${pass}" comment="Billing API User"
+
+# 2. ENABLE API & SSL SERVICES
+/ip service set api disabled=no port=8728
+/ip service set api-ssl disabled=no port=8729
 /ip service set www-ssl disabled=no port=443
 /ip cloud set ddns-enabled=yes
-/ip firewall filter add chain=input protocol=tcp dst-port=443 action=accept comment="Allow Billing API" place-before=0
 
-# ANTI-TETHERING / ANTI-HOTSPOT RULES
+# 3. FIREWALL RULES (ALLOW BACKEND ACCESS)
+/ip firewall filter add chain=input protocol=tcp dst-port=443 action=accept comment="Allow Billing API" place-before=0
+/ip firewall filter add chain=input protocol=tcp dst-port=8728 action=accept comment="Allow MikroTik API" place-before=0
+
+# 4. ANTI-TETHERING / ANTI-HOTSPOT RULES
 /ip firewall mangle add chain=postrouting action=change-ttl new-ttl=set:1 passthrough=yes comment="Prevent Sharing/Tethering"
 
-# WALLED GARDEN FOR GITHUB & GOOGLE
-/ip hotspot walled-garden add dst-host="*.github.io" action=allow
-/ip hotspot walled-garden add dst-host="*.google.com" action=allow
-/ip hotspot walled-garden add dst-host="*.googleusercontent.com" action=allow`;
+# 5. WALLED GARDEN (PAYMENT & PORTAL ACCESS)
+/ip hotspot walled-garden
+add dst-host="mrsnookum.github.io" action=allow comment="Allow Portfolio/Portal Hosting"
+add dst-host="*.github.io" action=allow
+add dst-host="script.google.com" action=allow comment="Allow Google Apps Script"
+add dst-host="*.google.com" action=allow
+add dst-host="*.googleusercontent.com" action=allow
+add dst-host="*.gstatic.com" action=allow
+add dst-host="backend.payhero.co.ke" action=allow comment="Allow PayHero STK API"
+add dst-host="*.payhero.co.ke" action=allow
 
-            document.getElementById('mt_script_output').innerText = script;
-        }
+# 6. CONFIGURE HOTSPOT AUTHENTICATION
+/ip hotspot profile set [find default=yes] login-by=http-pap,mac dns-name="snookum.wifi"`;
+
+    document.getElementById('mt_script_output').innerText = script;
+}
 
         function copyMTCode() {
             const text = document.getElementById('mt_script_output').innerText;
