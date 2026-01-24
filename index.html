@@ -3,207 +3,252 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wi-Fi Portal - Snookum ISP</title>
+    <title>Wi-Fi Portal - Smartech ISP</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Mobile-friendly card transitions */
-        .package-card { transition: all 0.2s ease-in-out; border-radius: 12px; border: 2px solid #e2e8f0; cursor: pointer; }
-        .package-card.selected { border-color: #2563eb; background-color: #eff6ff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .btn-primary { background-color: #2563eb; transition: all 0.2s; }
-        .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-left: 8px; }
+        /* Modern UI Polish */
+        .package-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 20px; border: 2px solid #f1f5f9; cursor: pointer; background: white; }
+        .package-card.selected { border-color: #2563eb; background-color: #eff6ff; transform: translateY(-4px); box-shadow: 0 12px 20px -8px rgba(37, 99, 235, 0.25); }
+        .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); transition: all 0.2s; }
+        .btn-primary:active { transform: scale(0.96); }
+
+        /* Animated Skeleton Loader for Packages */
+        .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; }
+        @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Smooth Professional Overlay Spinner */
+        .spinner-ring { border: 3px solid rgba(37, 99, 235, 0.1); border-top: 3px solid #2563eb; border-radius: 50%; width: 50px; height: 50px; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        input { font-size: 16px !important; } /* Fix iOS zoom */
+        .backdrop-blur-md { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         
-        /* Prevent auto-zoom on mobile inputs */
-        input { font-size: 16px !important; }
+        /* Ensure smooth scrolling for the whole page */
+        html { scroll-behavior: smooth; }
     </style>
 </head>
-<body class="bg-[#f8fafc] font-sans text-gray-800 antialiased">
+<body class="bg-[#f8fafc] font-sans text-gray-800 antialiased pb-10">
+
+    <div id="processingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[500] hidden flex items-center justify-center p-6 transition-all duration-300">
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl max-w-sm w-full text-center">
+            <div class="relative w-20 h-20 mx-auto mb-6">
+                <div class="spinner-ring absolute inset-0"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-blue-600">
+                    <i class="fas fa-bolt text-2xl animate-pulse"></i>
+                </div>
+            </div>
+            <h3 id="overlayTitle" class="text-xl font-black text-slate-900 mb-2">Connecting...</h3>
+            <p id="overlayMsg" class="text-slate-500 text-sm leading-relaxed">Please wait while we secure your connection.</p>
+        </div>
+    </div>
 
     <div class="max-w-4xl mx-auto px-4 py-6 md:py-12">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-black text-blue-900 mb-2 tracking-tight">SMARTECH</h1>
-            <div class="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wide">
-                <span class="mr-2 h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-                M-PESA STK PUSH ACTIVE
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-black text-blue-900 mb-3 tracking-tighter uppercase">Smartech</h1>
+            <div class="inline-flex items-center px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                <span class="mr-2 h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Secure Gateway Active
             </div>
         </div>
 
-        <div class="mb-10">
-            <h2 class="text-lg font-bold text-blue-900 mb-4 text-center md:text-left">Step 1: Select your Internet Plan</h2>
-            <div id="package-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-        </div>
-
-        <div class="max-w-md mx-auto mb-8 bg-white p-6 rounded-2xl border border-blue-50 shadow-lg">
-            <h2 class="text-center font-bold text-blue-900 mb-4 uppercase text-xs tracking-widest">Step 2: Enter M-Pesa Number</h2>
-            <div class="space-y-4">
-                <input type="tel" id="phone" placeholder="07xx... or 254..." 
-                       class="w-full p-4 border border-gray-200 rounded-xl text-center text-lg shadow-inner focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50">
-                
-                <button onclick="initiatePayHeroSTK()" id="payBtn" class="w-full btn-primary text-white py-4 rounded-xl font-bold text-lg shadow-md uppercase tracking-wide">
-                    Pay via M-Pesa
-                </button>
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-6 px-2">
+                <h2 class="text-lg font-black text-blue-900 uppercase tracking-tight">1. Choose Access Plan</h2>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step 1 of 3</span>
+            </div>
+            <div id="package-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-6 rounded-[20px] border border-slate-100 flex flex-col items-center gap-3">
+                    <div class="h-3 w-16 skeleton rounded-full"></div>
+                    <div class="h-6 w-24 skeleton rounded-lg"></div>
+                    <div class="h-8 w-full skeleton rounded-xl mt-2"></div>
+                </div>
+                <div class="bg-white p-6 rounded-[20px] border border-slate-100 flex flex-col items-center gap-3">
+                    <div class="h-3 w-16 skeleton rounded-full"></div>
+                    <div class="h-6 w-24 skeleton rounded-lg"></div>
+                    <div class="h-8 w-full skeleton rounded-xl mt-2"></div>
+                </div>
             </div>
         </div>
 
-        <div class="max-w-md mx-auto bg-white p-6 rounded-2xl border border-blue-50 shadow-lg">
-            <h2 class="text-center font-bold text-blue-900 mb-4 uppercase text-xs tracking-widest text-slate-500">Already have a code?</h2>
-            <div class="flex flex-col sm:flex-row gap-3">
-                <input type="text" id="accessCode" placeholder="ENTER CODE" 
-                       class="flex-1 p-4 rounded-xl border border-gray-200 text-center font-mono text-lg uppercase tracking-widest outline-none focus:border-blue-500 bg-gray-50">
-                <button onclick="connectToWifi()" id="connectBtn" class="btn-primary text-white py-4 px-6 rounded-xl font-bold shadow-md uppercase">
-                    Connect
-                </button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div id="payment-section" class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
+                <h2 class="font-black text-blue-900 mb-6 uppercase text-xs tracking-widest flex items-center gap-2">
+                    <i class="fas fa-wallet opacity-40"></i> 2. M-Pesa Payment
+                </h2>
+                <div class="space-y-4">
+                    <div class="relative group">
+                        <span class="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-300 transition-colors group-focus-within:text-blue-500">+254</span>
+                        <input type="tel" id="phone" placeholder="712345678" 
+                               class="w-full pl-16 pr-6 py-5 border border-slate-100 rounded-2xl text-left font-bold text-lg focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all bg-slate-50">
+                    </div>
+                    <button onclick="initiatePayHeroSTK()" id="payBtn" class="w-full btn-primary text-white py-5 rounded-2xl font-black text-sm shadow-lg shadow-blue-200 uppercase tracking-widest flex items-center justify-center gap-3">
+                        Request PIN <i class="fas fa-arrow-right text-[10px]"></i>
+                    </button>
+                </div>
             </div>
-            <p id="statusMsg" class="text-center mt-4 text-sm font-semibold min-h-[20px]"></p>
+
+            <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
+                <h2 class="font-black text-slate-400 mb-6 uppercase text-xs tracking-widest">Already have a code?</h2>
+                <div class="flex flex-col gap-4">
+                    <input type="text" id="accessCode" placeholder="ENTER CODE" 
+                           class="w-full p-5 rounded-2xl border border-slate-100 text-center font-mono text-xl font-black uppercase tracking-[0.4em] outline-none focus:ring-4 focus:ring-slate-50 focus:border-blue-500 bg-slate-50">
+                    <button onclick="connectToWifi()" id="connectBtn" class="bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all">
+                        Connect Device
+                    </button>
+                </div>
+            </div>
         </div>
+
+        <p id="statusMsg" class="text-center mt-12 text-[10px] font-black min-h-[20px] uppercase tracking-[0.2em]"></p>
     </div>
 
     <footer class="mt-auto py-8 border-t border-blue-50 bg-white">
         <div class="max-w-6xl mx-auto px-4 text-center">
-            <p class="text-slate-400 text-sm font-medium">
-                &copy; 2026 SMARTECH. All Rights Reserved.
-            </p>
-            <p class="mt-2 text-slate-500 text-xs tracking-wide uppercase">
-                Developed by 
-                <a href="https://mrsnookum.github.io/Brighton-Portfolio/" 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   class="font-bold text-blue-600 hover:text-blue-800 transition-colors duration-200">
-                   Brighton the Dev
-                </a>
-            </p>
+            <p class="text-slate-400 text-sm font-medium">&copy; 2026 WIFI INTERNET. All Rights Reserved.</p>
+            <p class="mt-2 text-slate-500 text-xs tracking-wide uppercase">Developed by <a href="https://mrsnookum.github.io/Brighton-Portfolio/" target="_blank" rel="noopener noreferrer" class="font-bold text-blue-600 hover:text-blue-800 transition-colors duration-200">Brighton the Dev</a></p>
         </div>
     </footer>
 
     <script>
-        // Updated URL for your Apps Script deployment
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxCZ_myNjhr9dXk66qH5PTbeJzKqrEa_vT5NK-jhV6HTx4OmPqVONbV-4g9ZVB5wBc/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXNXWMj0fpLTPc4p8r2sIrTCgvAFZYGZwcdisOxQyy_IPBaUkZ4ykmVqoD4voUzlU/exec';
         let selectedPackage = null;
 
-        const packages = [
-            { name: "1 Hour Access", desc: "Access for 1 hour", price: 1 },
-            { name: "2 Hour Access", desc: "Access for 2 hours", price: 15 },
-            { name: "12 Hour Unlimited", desc: "Unlimited for 12 hours", price: 30 },
-            { name: "1 Day Unlimited", desc: "Unlimited for 24 hours", price: 50 },
-            { name: "3GB Daily", desc: "3GB valid for 24 hours", price: 60 },
-            { name: "4GB Daily", desc: "4GB valid for 24 hours", price: 70 },
-            { name: "5GB - 3 Days", desc: "5GB valid for 3 days", price: 100 },
-            { name: "10GB - 7 Days", desc: "10GB valid for 7 days", price: 150 },
-            { name: "1 Week Unlimited", desc: "Unlimited for 7 days", price: 200 },
-            { name: "Weekend Unlimited", desc: "Fri - Sun access", price: 250 },
-            { name: "2 Weeks Unlimited", desc: "14 days access", price: 500 },
-            { name: "1 Month Unlimited", desc: "30 days access", price: 850 }
-        ];
+        function setOverlay(show, title = "", msg = "") {
+            const overlay = document.getElementById('processingOverlay');
+            if(show) {
+                document.getElementById('overlayTitle').innerText = title;
+                document.getElementById('overlayMsg').innerText = msg;
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
 
-        // Render Packages
-        const container = document.getElementById('package-container');
-        packages.forEach(pkg => {
-            const cardId = `pkg-${pkg.name.replace(/\s+/g, '')}`;
-            container.innerHTML += `
-                <div id="${cardId}" class="package-card bg-white p-4 text-center shadow-sm" onclick="selectPkg('${pkg.name}', ${pkg.price}, '${cardId}')">
-                    <h3 class="text-lg font-bold text-blue-900">${pkg.name}</h3>
-                    <p class="text-gray-400 text-xs mb-2">${pkg.desc}</p>
-                    <p class="text-xl font-black text-gray-900 mb-1 font-mono">KES ${pkg.price}</p>
-                    <div class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Select Plan</div>
+        async function fetchPackages() {
+            try {
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=getAdminData`);
+                const data = await response.json();
+                if (data && data.packages) {
+                    renderPackages(data.packages);
+                } else { throw new Error("No packages"); }
+            } catch (e) {
+                renderPackages([{name: "1 Hour Access", price: 10}, {name: "1 Day Access", price: 50}]);
+            }
+        }
+
+        function renderPackages(pkgs) {
+            const container = document.getElementById('package-container');
+            container.innerHTML = pkgs.map(pkg => `
+                <div id="pkg-${pkg.name.replace(/\s+/g, '')}" 
+                     class="package-card p-6 text-center shadow-sm" 
+                     onclick="selectPkg('${pkg.name}', ${pkg.price}, 'pkg-${pkg.name.replace(/\s+/g, '')}')">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">${pkg.name}</h3>
+                    <p class="text-2xl font-black text-slate-900">KES ${pkg.price}</p>
+                    <div class="mt-4 py-2 px-3 rounded-xl bg-slate-50 text-[8px] font-black text-blue-600 uppercase tracking-widest">Select</div>
                 </div>
-            `;
-        });
+            `).join('');
+        }
 
+        /**
+         * UPDATED: Now selects the package AND scrolls to the payment input.
+         */
         function selectPkg(name, price, id) {
             selectedPackage = { name, price };
+            
+            // Remove selection from all cards and add to current
             document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
             document.getElementById(id).classList.add('selected');
-            document.getElementById('phone').scrollIntoView({ behavior: 'smooth', block: 'center' });
-            updateStatus(`Selected: ${name}.`, "blue");
+            
+            // UI Feedback
+            updateStatus(`Plan: ${name} selected`, "blue");
+
+            // --- SMOOTH SCROLL TO PHONE NUMBER SECTION ---
+            document.getElementById('payment-section').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+
+            // Auto-focus the phone input for better UX
+            setTimeout(() => {
+                document.getElementById('phone').focus();
+            }, 600);
         }
 
         async function initiatePayHeroSTK() {
             const phoneInput = document.getElementById('phone').value.trim();
-            if (!selectedPackage) return updateStatus("Select a package first!", "red");
-            if (!phoneInput || phoneInput.length < 10) return updateStatus("Enter valid phone number.", "red");
+            if (!selectedPackage) return updateStatus("Please select a plan first", "red");
+            if (!phoneInput || phoneInput.length < 9) return updateStatus("Invalid phone number", "red");
 
-            updateStatus("Processing PIN prompt... <div class='loader'></div>", "blue");
+            setOverlay(true, "Requesting PIN", "Check your phone for the M-Pesa prompt.");
 
             try {
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: "POST",
-                    body: JSON.stringify({ 
-                        action: "registerPayment", 
-                        phone: phoneInput, 
-                        package: selectedPackage.name 
-                    })
+                    body: JSON.stringify({ action: "registerPayment", phone: phoneInput, package: selectedPackage.name })
                 });
-                
                 const result = await response.json();
                 if(result.status === "success") {
-                    updateStatus("Check phone for PIN prompt!", "green");
+                    updateStatus("STK Sent. Waiting for payment...", "green");
                     pollForCode(phoneInput);
                 } else {
-                    updateStatus("STK Error: " + (result.message || "Try again"), "red");
+                    setOverlay(false);
+                    updateStatus(result.message || "Failed", "red");
                 }
-            } catch (e) {
-                updateStatus("Connection error. Try again.", "red");
-            }
+            } catch (e) { setOverlay(false); updateStatus("Network Error", "red"); }
         }
 
         async function pollForCode(phone) {
-            const codeInput = document.getElementById('accessCode');
             const cleanPhone = phone.toString().slice(-9); 
-            const startTime = Date.now();
-            
+            let attempts = 0;
             const interval = setInterval(async () => {
-                if (Date.now() - startTime > 180000) { 
+                attempts++;
+                if (attempts > 30) {
                     clearInterval(interval);
-                    updateStatus("Timeout. Enter code manually if paid.", "red");
+                    setOverlay(false);
+                    updateStatus("Timeout. Enter code from SMS if paid.", "red");
                     return;
                 }
-
                 try {
                     const response = await fetch(`${APPS_SCRIPT_URL}?action=checkMyCode&phone=${cleanPhone}`);
                     const result = await response.json();
-                    
                     if (result.status === "success") {
-                        clearInterval(interval); 
-                        codeInput.value = result.code;
-                        updateStatus("Payment Verified! Connecting...", "green");
-                        setTimeout(() => connectToWifi(), 1500); 
+                        clearInterval(interval);
+                        document.getElementById('accessCode').value = result.code;
+                        setOverlay(true, "Verified!", "Activating internet...");
+                        setTimeout(() => connectToWifi(), 1000); 
                     }
-                } catch (e) { console.log("Waiting..."); }
+                } catch (e) {}
             }, 4000); 
         }
 
         async function connectToWifi() {
             const codeInput = document.getElementById('accessCode').value.trim().toUpperCase();
-            const urlParams = new URLSearchParams(window.location.search);
-            const mac = urlParams.get('mac') || "00:00:00:00:00:00"; 
-            
-            if (!codeInput) return updateStatus("Please enter your access code.", "red");
-            updateStatus("Connecting... <div class='loader'></div>", "blue");
-            
+            if (!codeInput) return updateStatus("Enter your code", "red");
+            setOverlay(true, "Connecting", "Linking your device to Smartech...");
             try {
                 const resp = await fetch(APPS_SCRIPT_URL, {
                     method: "POST",
-                    body: JSON.stringify({ action: "verifyAndConnect", code: codeInput, mac: mac })
+                    body: JSON.stringify({ action: "activate", code: codeInput, mac: "00:00:00:00:00:00" })
                 });
                 const data = await resp.json();
-                
                 if (data.status === "success") {
-                    updateStatus("AUTHENTICATED! Redirecting...", "green");
-                    setTimeout(() => { window.location.href = "https://www.google.com"; }, 2000);
+                    updateStatus("Authenticated! Redirecting...", "green");
+                    setTimeout(() => { window.location.href = "https://www.google.com"; }, 1500);
                 } else {
-                    updateStatus(data.message || "Invalid Code.", "red");
+                    setOverlay(false);
+                    updateStatus(data.message || "Invalid Code", "red");
                 }
-            } catch (e) {
-                updateStatus("Connection error.", "red");
-            }
+            } catch (e) { setOverlay(false); updateStatus("Error", "red"); }
         }
 
         function updateStatus(msg, color) {
             const status = document.getElementById('statusMsg');
             status.innerHTML = msg;
-            status.style.color = color === "red" ? "#ef4444" : (color === "green" ? "#22c55e" : "#2563eb");
+            status.style.color = color === "red" ? "#f43f5e" : (color === "green" ? "#10b981" : "#3b82f6");
         }
+
+        fetchPackages();
     </script>
 </body>
 </html>
