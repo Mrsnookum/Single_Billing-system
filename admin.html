@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ISP Admin Dashboard</title>
+    <title>SNOOKUMTECH Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -34,14 +34,14 @@
     </div>
 
     <div class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center fixed top-0 w-full z-[100]">
-        <h1 class="font-black tracking-tight">WIFI ADMIN</h1>
+        <h1 class="font-black tracking-tight">SNOOKUMTECH ADMIN</h1>
         <button onclick="toggleSidebar()"><i class="fas fa-bars text-xl"></i></button>
     </div>
 
     <div id="mainDashboard" class="flex min-h-screen blur-md opacity-0 transition-all duration-500 pointer-events-none pt-14 md:pt-0">
         
         <div id="sidebar" class="fixed md:relative z-[110] w-64 bg-slate-900 text-slate-300 p-6 shadow-xl flex flex-col min-h-screen transition-transform duration-300 sidebar-hidden md:transform-none">
-            <h1 class="text-white text-2xl font-black mb-10 tracking-tight hidden md:block">WIFI ADMIN</h1>
+            <h1 class="text-white text-2xl font-black mb-10 tracking-tight hidden md:block">SNOOKUMTECH ADMIN</h1>
             <nav class="space-y-2 flex-1">
                 <button id="btn-dashboard" onclick="switchTab('dashboard')" class="nav-btn w-full flex items-center space-x-3 p-3 bg-blue-600 text-white rounded-xl transition">
                     <i class="fas fa-chart-line w-5"></i> <span>Dashboard</span>
@@ -136,9 +136,7 @@
                         <i class="fas fa-plus mr-2"></i> Add New Package
                     </button>
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="packageGrid">
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="packageGrid"></div>
             </div>
 
             <div id="transactionsTab" class="tab-content">
@@ -246,7 +244,8 @@
                         <p class="text-sm text-slate-600 leading-relaxed">
                             <strong>Files:</strong> Open Files in WinBox. Find <b>hotspot</b> folder.<br>
                             <strong>Backup:</strong> Rename original login.html to login_backup.html.<br>
-                            <strong>Upload:</strong> Drag your custom <b>login.html</b> into the hotspot folder.
+                            <strong>Upload:</strong> Drag your custom <b>login.html</b> into the hotspot folder.<br>
+                            <strong>Contact:</strong> contact @mrsnookum for your custom login.html file. +254712153539
                         </p>
                     </div>
 
@@ -294,36 +293,31 @@
                 <h2 class="text-2xl font-black">New Voucher</h2>
                 <button onclick="hideManualModal()"><i class="fas fa-times text-slate-400"></i></button>
             </div>
-            <select id="mPkg" class="w-full p-4 border rounded-xl mb-4 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 font-medium">
-                </select>
+            <select id="mPkg" class="w-full p-4 border rounded-xl mb-4 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 font-medium"></select>
             <input type="text" id="mPhone" placeholder="Phone Number" class="w-full p-4 border rounded-xl mb-6 outline-none focus:ring-2 focus:ring-blue-500">
             <button onclick="generateManual()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold shadow-lg transform active:scale-95 transition">Generate Code</button>
         </div>
     </div>
 
-    <div id="deleteConfirmModal" class="fixed inset-0 bg-slate-900/80 hidden z-[350] flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center">
-        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-            <i class="fas fa-exclamation-triangle"></i>
-        </div>
-        <h3 class="text-xl font-bold mb-2">Delete Package?</h3>
-        <p id="deleteConfirmText" class="text-slate-500 text-sm mb-6"></p>
-        <div class="flex gap-3">
-            <button onclick="closeDeleteModal()" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold text-slate-600">Cancel</button>
-            <button id="confirmDeleteBtn" class="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold shadow-lg shadow-red-200">Delete</button>
-        </div>
-    </div>
-</div>
-
     <footer class="mt-auto py-8 border-t border-blue-50 bg-white">
         <div class="max-w-6xl mx-auto px-4 text-center">
-            <p class="text-slate-400 text-sm font-medium">&copy; 2026 WIFI INTERNET. All Rights Reserved.</p>
-            <p class="mt-2 text-slate-500 text-xs tracking-wide uppercase">Developed by <a href="https://mrsnookum.github.io/Brighton-Portfolio/" target="_blank" rel="noopener noreferrer" class="font-bold text-blue-600 hover:text-blue-800 transition-colors duration-200">Brighton the Dev</a></p>
+            <p class="text-slate-400 text-sm font-medium">
+                &copy; 2026 WIFI INTERNET. All Rights Reserved.
+            </p>
+            <p class="mt-2 text-slate-500 text-xs tracking-wide uppercase">
+                Developed by 
+                <a href="https://mrsnookum.github.io/Brighton-Portfolio/" 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   class="font-bold text-blue-600 hover:text-blue-800 transition-colors duration-200">
+                   Brighton the Dev
+                </a>
+            </p>
         </div>
     </footer>
 
     <script>
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXNXWMj0fpLTPc4p8r2sIrTCgvAFZYGZwcdisOxQyy_IPBaUkZ4ykmVqoD4voUzlU/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhREJYNGq62z1TbaYfW1_cG7W8k6bzA3to4sjAJIHfUsVdyAdFSJyCQCbAe7Fueik/exec';
         let chartInstance = null;
         let packagesData = [];
         const ADMIN_PASSWORD = "1234";
@@ -351,11 +345,9 @@
             } catch (e) { showStatus("Sync Error", "bg-red-500"); }
         }
 
-        // --- Package Management Logic ---
         function renderPackages() {
             const grid = document.getElementById('packageGrid');
             const select = document.getElementById('mPkg');
-            
             grid.innerHTML = packagesData.map(pkg => `
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
                     <div>
@@ -366,10 +358,16 @@
                     <button onclick="deletePackage('${pkg.name}')" class="mt-6 text-red-500 text-xs font-bold uppercase tracking-widest hover:text-red-700 transition">
                         <i class="fas fa-trash-alt mr-1"></i> Delete
                     </button>
-                </div>
-            `).join('');
-
+                </div>`).join('');
             select.innerHTML = packagesData.map(pkg => `<option value="${pkg.name}">${pkg.name} (KES ${pkg.price})</option>`).join('');
+        }
+
+        function showPackageModal() {
+            document.getElementById('pkgModal').classList.remove('hidden');
+        }
+
+        function hidePackageModal() {
+            document.getElementById('pkgModal').classList.add('hidden');
         }
 
         async function addPackage() {
@@ -377,43 +375,51 @@
             const price = document.getElementById('newPkgPrice').value;
             const duration = document.getElementById('newPkgDuration').value;
 
-            if(!name || !price || !duration) { showStatus("All fields required", "bg-red-500"); return; }
+            if(!name || !price || !duration) { 
+                showStatus("All fields required", "bg-red-500"); 
+                return; 
+            }
             
             showStatus("Saving Package...", "bg-blue-600");
+            
             try {
-                const res = await fetch(APPS_SCRIPT_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ action: "addPackage", name, price, duration })
+                const res = await fetch(APPS_SCRIPT_URL, { 
+                    method: "POST", 
+                    body: JSON.stringify({ 
+                        action: "addPackage", 
+                        name: name, 
+                        price: price, 
+                        duration: duration 
+                    }) 
                 });
+                
                 const result = await res.json();
-                if(result.status === "success") {
-                    hidePackageModal();
+                
+                if(result.status === "success") { 
+                    document.getElementById('newPkgName').value = "";
+                    document.getElementById('newPkgPrice').value = "";
+                    document.getElementById('newPkgDuration').value = "";
+                    
+                    hidePackageModal(); 
                     fetchAdminData();
-                    showStatus("Package Added", "bg-green-600");
+                    showStatus("Package Added!", "bg-green-600"); 
+                } else {
+                    showStatus("Error: " + (result.message || "Failed"), "bg-red-500");
                 }
-            } catch (e) { showStatus("Error saving", "bg-red-500"); }
+            } catch (e) { 
+                showStatus("Connection Error", "bg-red-500"); 
+            }
         }
 
         async function deletePackage(name) {
             if(!confirm(`Delete package: ${name}?`)) return;
             showStatus("Deleting...", "bg-red-500");
             try {
-                const res = await fetch(APPS_SCRIPT_URL, {
-                    method: "POST",
-                    body: JSON.stringify({ action: "deletePackage", name })
-                });
-                const result = await res.json();
-                if(result.status === "success") {
-                    fetchAdminData();
-                    showStatus("Package Deleted", "bg-slate-700");
-                }
+                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deletePackage", name }) });
+                if((await res.json()).status === "success") { fetchAdminData(); showStatus("Package Deleted", "bg-slate-700"); }
             } catch (e) { showStatus("Delete Failed", "bg-red-500"); }
         }
 
-        function showPackageModal() { document.getElementById('pkgModal').classList.remove('hidden'); }
-        function hidePackageModal() { document.getElementById('pkgModal').classList.add('hidden'); }
-
-        // --- Keeping the rest of your original logic below ---
         async function testConnection() {
             const statusDiv = document.getElementById('conn_status');
             statusDiv.classList.remove('hidden', 'text-green-600', 'text-red-600');
@@ -446,7 +452,41 @@
         }
 
         function generateMTScript(user, pass, dns) {
-            const script = `/user add name="${user}" group=full password="${pass}" comment="Billing API User"\n/ip service set api disabled=no port=8728\n/ip cloud set ddns-enabled=yes\n/ip hotspot profile set [find default=yes] login-by=http-pap dns-name="snookum.wifi"`;
+            const script = `# ==========================================
+# MIKROTIK AUTO-CONFIG FOR ISP PORTAL
+# Generated for Cloud DNS: ${dns}
+# ==========================================
+
+# 1. CREATE API USER
+/user add name="${user}" group=full password="${pass}" comment="Billing API User"
+
+# 2. ENABLE API & SSL SERVICES
+/ip service set api disabled=no port=8728
+/ip service set api-ssl disabled=no port=8729
+/ip service set www-ssl disabled=no port=443
+/ip cloud set ddns-enabled=yes
+
+# 3. FIREWALL RULES (ALLOW BACKEND ACCESS)
+/ip firewall filter add chain=input protocol=tcp dst-port=443 action=accept comment="Allow Billing API" place-before=0
+/ip firewall filter add chain=input protocol=tcp dst-port=8728 action=accept comment="Allow MikroTik API" place-before=0
+
+# 4. ANTI-TETHERING / ANTI-HOTSPOT RULES
+/ip firewall mangle add chain=postrouting action=change-ttl new-ttl=set:1 passthrough=yes comment="Prevent Sharing/Tethering"
+
+# 5. WALLED GARDEN (PAYMENT & PORTAL ACCESS)
+/ip hotspot walled-garden
+add dst-host="mrsnookum.github.io" action=allow comment="Allow Portfolio/Portal Hosting"
+add dst-host="*.github.io" action=allow
+add dst-host="script.google.com" action=allow comment="Allow Google Apps Script"
+add dst-host="*.google.com" action=allow
+add dst-host="*.googleusercontent.com" action=allow
+add dst-host="*.gstatic.com" action=allow
+add dst-host="backend.payhero.co.ke" action=allow comment="Allow PayHero STK API"
+add dst-host="*.payhero.co.ke" action=allow
+
+# 6. CONFIGURE HOTSPOT AUTHENTICATION
+/ip hotspot profile set [find default=yes] login-by=http-pap,mac dns-name="snookum.wifi"`;
+
             document.getElementById('mt_script_output').innerText = script;
         }
 
@@ -472,7 +512,7 @@
                 return `<tr class="border-b hover:bg-slate-50 transition text-sm">
                     <td class="p-4 font-medium">${t.phone}</td><td class="p-4 text-slate-500">${t.package}</td>
                     <td class="p-4 font-mono font-bold text-blue-600 tracking-widest text-center">${t.code}</td>
-                    <td class="p-4"><span class="px-2 py-1 rounded-full text-[10px] font-black uppercase ${statusClass}">${t.status}</span></td>
+                    <td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-black uppercase ${statusClass}">${t.status}</span></td>
                     <td class="p-4 text-right space-x-1">
                         <button onclick="adminAction('${t.code}', 'activate')" class="bg-green-500 text-white p-1.5 rounded-lg text-[10px]"><i class="fas fa-play"></i></button>
                         <button onclick="adminAction('${t.code}', 'deactivate')" class="bg-red-400 text-white p-1.5 rounded-lg text-[10px]"><i class="fas fa-stop"></i></button>
@@ -536,5 +576,3 @@
     </script>
 </body>
 </html>
-
-
