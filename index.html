@@ -24,7 +24,6 @@
         input { font-size: 16px !important; } /* Fix iOS zoom */
         .backdrop-blur-md { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         
-        /* Ensure smooth scrolling for the whole page */
         html { scroll-behavior: smooth; }
     </style>
 </head>
@@ -58,11 +57,6 @@
                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step 1 of 3</span>
             </div>
             <div id="package-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div class="bg-white p-6 rounded-[20px] border border-slate-100 flex flex-col items-center gap-3">
-                    <div class="h-3 w-16 skeleton rounded-full"></div>
-                    <div class="h-6 w-24 skeleton rounded-lg"></div>
-                    <div class="h-8 w-full skeleton rounded-xl mt-2"></div>
-                </div>
                 <div class="bg-white p-6 rounded-[20px] border border-slate-100 flex flex-col items-center gap-3">
                     <div class="h-3 w-16 skeleton rounded-full"></div>
                     <div class="h-6 w-24 skeleton rounded-lg"></div>
@@ -105,13 +99,23 @@
 
     <footer class="mt-auto py-8 border-t border-blue-50 bg-white">
         <div class="max-w-6xl mx-auto px-4 text-center">
-            <p class="text-slate-400 text-sm font-medium">&copy; 2026 WIFI INTERNET. All Rights Reserved.</p>
-            <p class="mt-2 text-slate-500 text-xs tracking-wide uppercase">Developed by <a href="https://mrsnookum.github.io/Brighton-Portfolio/" target="_blank" rel="noopener noreferrer" class="font-bold text-blue-600 hover:text-blue-800 transition-colors duration-200">Brighton the Dev</a></p>
+            <p class="text-slate-400 text-sm font-medium">
+                &copy; 2026 WIFI INTERNET. All Rights Reserved.
+            </p>
+            <p class="mt-2 text-slate-500 text-xs tracking-wide uppercase">
+                Developed by 
+                <a href="https://mrsnookum.github.io/Brighton-Portfolio/" 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   class="font-bold text-blue-600 hover:text-blue-800 transition-colors duration-200">
+                    Brighton the Dev
+                </a>
+            </p>
         </div>
     </footer>
 
     <script>
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXNXWMj0fpLTPc4p8r2sIrTCgvAFZYGZwcdisOxQyy_IPBaUkZ4ykmVqoD4voUzlU/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhREJYNGq62z1TbaYfW1_cG7W8k6bzA3to4sjAJIHfUsVdyAdFSJyCQCbAe7Fueik/exec';
         let selectedPackage = null;
 
         function setOverlay(show, title = "", msg = "") {
@@ -120,59 +124,46 @@
                 document.getElementById('overlayTitle').innerText = title;
                 document.getElementById('overlayMsg').innerText = msg;
                 overlay.classList.remove('hidden');
-            } else {
-                overlay.classList.add('hidden');
-            }
+            } else { overlay.classList.add('hidden'); }
         }
 
         async function fetchPackages() {
             try {
                 const response = await fetch(`${APPS_SCRIPT_URL}?action=getAdminData`);
-                const data = await response.json();
-                if (data && data.packages) {
-                    renderPackages(data.packages);
-                } else { throw new Error("No packages"); }
+                const result = await response.json();
+                if (result.status === "success" && result.packages) {
+                    renderPackages(result.packages);
+                } else { throw new Error("No data"); }
             } catch (e) {
+                console.warn("Fetch failed, using defaults");
                 renderPackages([{name: "1 Hour Access", price: 10}, {name: "1 Day Access", price: 50}]);
             }
         }
 
         function renderPackages(pkgs) {
             const container = document.getElementById('package-container');
-            container.innerHTML = pkgs.map(pkg => `
-                <div id="pkg-${pkg.name.replace(/\s+/g, '')}" 
+            container.innerHTML = pkgs.map((pkg, index) => {
+                const pkgId = `pkg-${index}`;
+                return `
+                <div id="${pkgId}" 
                      class="package-card p-6 text-center shadow-sm" 
-                     onclick="selectPkg('${pkg.name}', ${pkg.price}, 'pkg-${pkg.name.replace(/\s+/g, '')}')">
+                     onclick="selectPkg('${pkg.name}', ${pkg.price}, '${pkgId}')">
                     <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">${pkg.name}</h3>
                     <p class="text-2xl font-black text-slate-900">KES ${pkg.price}</p>
                     <div class="mt-4 py-2 px-3 rounded-xl bg-slate-50 text-[8px] font-black text-blue-600 uppercase tracking-widest">Select</div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
 
-        /**
-         * UPDATED: Now selects the package AND scrolls to the payment input.
-         */
         function selectPkg(name, price, id) {
             selectedPackage = { name, price };
-            
-            // Remove selection from all cards and add to current
             document.querySelectorAll('.package-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById(id).classList.add('selected');
+            const card = document.getElementById(id);
+            if(card) card.classList.add('selected');
             
-            // UI Feedback
             updateStatus(`Plan: ${name} selected`, "blue");
-
-            // --- SMOOTH SCROLL TO PHONE NUMBER SECTION ---
-            document.getElementById('payment-section').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center' 
-            });
-
-            // Auto-focus the phone input for better UX
-            setTimeout(() => {
-                document.getElementById('phone').focus();
-            }, 600);
+            document.getElementById('payment-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => { document.getElementById('phone').focus(); }, 600);
         }
 
         async function initiatePayHeroSTK() {
@@ -188,34 +179,30 @@
                     body: JSON.stringify({ action: "registerPayment", phone: phoneInput, package: selectedPackage.name })
                 });
                 const result = await response.json();
-                if(result.status === "success") {
-                    updateStatus("STK Sent. Waiting for payment...", "green");
+                
+                if(result.status === "success" || result.success === true) {
+                    updateStatus("STK Sent. Waiting for payment confirmation...", "green");
                     pollForCode(phoneInput);
-                } else {
-                    setOverlay(false);
-                    updateStatus(result.message || "Failed", "red");
+                } else { 
+                    setOverlay(false); 
+                    updateStatus(result.message || "STK Trigger Failed. Check account status.", "red"); 
                 }
-            } catch (e) { setOverlay(false); updateStatus("Network Error", "red"); }
+            } catch (e) { 
+                setOverlay(false); 
+                updateStatus("Network Error. Ensure your Web App is deployed for 'Anyone'.", "red"); 
+            }
         }
 
         async function pollForCode(phone) {
             const cleanPhone = phone.toString().slice(-9); 
-            let attempts = 0;
             const interval = setInterval(async () => {
-                attempts++;
-                if (attempts > 30) {
-                    clearInterval(interval);
-                    setOverlay(false);
-                    updateStatus("Timeout. Enter code from SMS if paid.", "red");
-                    return;
-                }
                 try {
                     const response = await fetch(`${APPS_SCRIPT_URL}?action=checkMyCode&phone=${cleanPhone}`);
                     const result = await response.json();
                     if (result.status === "success") {
                         clearInterval(interval);
                         document.getElementById('accessCode').value = result.code;
-                        setOverlay(true, "Verified!", "Activating internet...");
+                        setOverlay(true, "Payment Confirmed!", "Your high-speed session is starting...");
                         setTimeout(() => connectToWifi(), 1000); 
                     }
                 } catch (e) {}
@@ -225,7 +212,7 @@
         async function connectToWifi() {
             const codeInput = document.getElementById('accessCode').value.trim().toUpperCase();
             if (!codeInput) return updateStatus("Enter your code", "red");
-            setOverlay(true, "Connecting", "Linking your device to Smartech...");
+            setOverlay(true, "Activating", "Authenticating your device on network...");
             try {
                 const resp = await fetch(APPS_SCRIPT_URL, {
                     method: "POST",
@@ -233,13 +220,16 @@
                 });
                 const data = await resp.json();
                 if (data.status === "success") {
-                    updateStatus("Authenticated! Redirecting...", "green");
+                    updateStatus("Authenticated! Enjoy your session.", "green");
                     setTimeout(() => { window.location.href = "https://www.google.com"; }, 1500);
-                } else {
-                    setOverlay(false);
-                    updateStatus(data.message || "Invalid Code", "red");
+                } else { 
+                    setOverlay(false); 
+                    updateStatus(data.message || "Invalid or Expired Code", "red"); 
                 }
-            } catch (e) { setOverlay(false); updateStatus("Error", "red"); }
+            } catch (e) { 
+                setOverlay(false); 
+                updateStatus("System busy. Please try connecting again.", "red"); 
+            }
         }
 
         function updateStatus(msg, color) {
@@ -252,5 +242,3 @@
     </script>
 </body>
 </html>
-
-
