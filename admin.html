@@ -15,7 +15,6 @@
         .status-active { background-color: #dcfce7; color: #166534; } 
         .status-expired { background-color: #fee2e2; color: #991b1b; } 
         .status-disabled { background-color: #fef3c7; color: #92400e; }
-        /* Style for the Guide */
         .guide-step { border-left: 4px solid #3b82f6; padding-left: 1.5rem; margin-bottom: 2rem; position: relative; }
         .guide-step::before { content: ''; position: absolute; left: -10px; top: 0; width: 16px; height: 16px; background: #3b82f6; border-radius: 50%; }
     </style>
@@ -188,6 +187,20 @@
                             </div>
                             <div id="conn_status" class="mt-4 text-center text-sm font-bold hidden"></div>
                         </div>
+
+                        <div class="mt-8 pt-8 border-t border-slate-100">
+                            <h3 class="text-sm font-black text-slate-900 mb-4 uppercase tracking-widest">Manual Remote Access</h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="openWinBox()" class="p-4 bg-blue-50 rounded-2xl border border-blue-100 hover:bg-blue-100 transition flex flex-col items-center gap-2">
+                                    <i class="fas fa-desktop text-blue-600"></i>
+                                    <span class="text-[10px] font-black text-blue-800 uppercase">WinBox</span>
+                                </button>
+                                <button onclick="openWebFig()" class="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 hover:bg-emerald-100 transition flex flex-col items-center gap-2">
+                                    <i class="fas fa-globe text-emerald-600"></i>
+                                    <span class="text-[10px] font-black text-emerald-800 uppercase">WebFig</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="bg-slate-900 p-8 rounded-3xl shadow-sm text-green-400 font-mono text-xs overflow-hidden flex flex-col">
@@ -310,7 +323,7 @@
                    target="_blank" 
                    rel="noopener noreferrer" 
                    class="font-bold text-blue-600 hover:text-blue-800 transition-colors duration-200">
-                   Brighton the Dev
+                    Brighton the Dev
                 </a>
             </p>
         </div>
@@ -362,13 +375,8 @@
             select.innerHTML = packagesData.map(pkg => `<option value="${pkg.name}">${pkg.name} (KES ${pkg.price})</option>`).join('');
         }
 
-        function showPackageModal() {
-            document.getElementById('pkgModal').classList.remove('hidden');
-        }
-
-        function hidePackageModal() {
-            document.getElementById('pkgModal').classList.add('hidden');
-        }
+        function showPackageModal() { document.getElementById('pkgModal').classList.remove('hidden'); }
+        function hidePackageModal() { document.getElementById('pkgModal').classList.add('hidden'); }
 
         async function addPackage() {
             const name = document.getElementById('newPkgName').value;
@@ -381,34 +389,20 @@
             }
             
             showStatus("Saving Package...", "bg-blue-600");
-            
             try {
                 const res = await fetch(APPS_SCRIPT_URL, { 
                     method: "POST", 
-                    body: JSON.stringify({ 
-                        action: "addPackage", 
-                        name: name, 
-                        price: price, 
-                        duration: duration 
-                    }) 
+                    body: JSON.stringify({ action: "addPackage", name, price, duration }) 
                 });
-                
                 const result = await res.json();
-                
                 if(result.status === "success") { 
                     document.getElementById('newPkgName').value = "";
                     document.getElementById('newPkgPrice').value = "";
                     document.getElementById('newPkgDuration').value = "";
-                    
-                    hidePackageModal(); 
-                    fetchAdminData();
+                    hidePackageModal(); fetchAdminData();
                     showStatus("Package Added!", "bg-green-600"); 
-                } else {
-                    showStatus("Error: " + (result.message || "Failed"), "bg-red-500");
                 }
-            } catch (e) { 
-                showStatus("Connection Error", "bg-red-500"); 
-            }
+            } catch (e) { showStatus("Connection Error", "bg-red-500"); }
         }
 
         async function deletePackage(name) {
@@ -460,34 +454,45 @@
 # 1. CREATE API USER
 /user add name="${user}" group=full password="${pass}" comment="Billing API User"
 
-# 2. ENABLE API & SSL SERVICES
+# 2. ENABLE SERVICES & CLOUD DDNS
 /ip service set api disabled=no port=8728
 /ip service set api-ssl disabled=no port=8729
+/ip service set www disabled=no port=80
 /ip service set www-ssl disabled=no port=443
 /ip cloud set ddns-enabled=yes
+/ip cloud force-update
 
-# 3. FIREWALL RULES (ALLOW BACKEND ACCESS)
-/ip firewall filter add chain=input protocol=tcp dst-port=443 action=accept comment="Allow Billing API" place-before=0
-/ip firewall filter add chain=input protocol=tcp dst-port=8728 action=accept comment="Allow MikroTik API" place-before=0
+# 3. FIREWALL RULES (ALLOW INBOUND MGMT)
+/ip firewall filter add chain=input protocol=tcp dst-port=443 action=accept comment="Allow WebFig" place-before=0
+/ip firewall filter add chain=input protocol=tcp dst-port=8291 action=accept comment="Allow WinBox" place-before=0
+/ip firewall filter add chain=input protocol=tcp dst-port=8728 action=accept comment="Allow Billing API" place-before=0
 
-# 4. ANTI-TETHERING / ANTI-HOTSPOT RULES
-/ip firewall mangle add chain=postrouting action=change-ttl new-ttl=set:1 passthrough=yes comment="Prevent Sharing/Tethering"
+# 4. ANTI-TETHERING
+/ip firewall mangle add chain=postrouting action=change-ttl new-ttl=set:1 passthrough=yes comment="Prevent Sharing"
 
-# 5. WALLED GARDEN (PAYMENT & PORTAL ACCESS)
+# 5. WALLED GARDEN
 /ip hotspot walled-garden
-add dst-host="mrsnookum.github.io" action=allow comment="Allow Portfolio/Portal Hosting"
+add dst-host="mrsnookum.github.io" action=allow
 add dst-host="*.github.io" action=allow
-add dst-host="script.google.com" action=allow comment="Allow Google Apps Script"
+add dst-host="script.google.com" action=allow
 add dst-host="*.google.com" action=allow
-add dst-host="*.googleusercontent.com" action=allow
-add dst-host="*.gstatic.com" action=allow
-add dst-host="backend.payhero.co.ke" action=allow comment="Allow PayHero STK API"
-add dst-host="*.payhero.co.ke" action=allow
+add dst-host="backend.payhero.co.ke" action=allow
 
-# 6. CONFIGURE HOTSPOT AUTHENTICATION
+# 6. AUTHENTICATION
 /ip hotspot profile set [find default=yes] login-by=http-pap,mac dns-name="snookum.wifi"`;
-
             document.getElementById('mt_script_output').innerText = script;
+        }
+
+        function openWinBox() {
+            const dns = document.getElementById('mt_dns').value;
+            if(!dns) return showStatus("Enter DNS first", "bg-red-500");
+            window.location.href = `telnet://${dns}:8291`;
+        }
+
+        function openWebFig() {
+            const dns = document.getElementById('mt_dns').value;
+            if(!dns) return showStatus("Enter DNS first", "bg-red-500");
+            window.open(`http://${dns}`, '_blank');
         }
 
         function copyMTCode() { navigator.clipboard.writeText(document.getElementById('mt_script_output').innerText); showStatus("Copied", "bg-blue-600"); }
