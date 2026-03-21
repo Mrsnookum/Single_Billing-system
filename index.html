@@ -25,6 +25,10 @@
         .backdrop-blur-md { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
         
         html { scroll-behavior: smooth; }
+
+        /* Reconnection Tab Styles */
+        .reconnect-tab { cursor: pointer; padding: 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; border-bottom: 2px solid transparent; transition: all 0.3s; }
+        .reconnect-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
     </style>
 </head>
 <body class="bg-[#f8fafc] font-sans text-gray-800 antialiased pb-10">
@@ -79,17 +83,44 @@
                     <button onclick="initiatePayHeroSTK()" id="payBtn" class="w-full btn-primary text-white py-5 rounded-2xl font-black text-sm shadow-lg shadow-blue-200 uppercase tracking-widest flex items-center justify-center gap-3">
                         Request PIN <i class="fas fa-arrow-right text-[10px]"></i>
                     </button>
+
+                    <div id="emergency-notice" class="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-xl">
+                        <p class="text-[10px] font-bold text-yellow-800 uppercase tracking-tight">
+                            <i class="fas fa-exclamation-triangle mr-1"></i> STK Delayed?
+                        </p>
+                        <p class="text-[11px] text-yellow-700 leading-tight mt-1">
+                            If the prompt doesn't appear, pay manually to <b>Till: 7600516</b> then:
+                        </p>
+                        <a href="https://wa.me/254712153539?text=Hi, I have paid manually to Till 7600516. Please send my Wi-Fi code." 
+                           target="_blank"
+                           class="mt-3 w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md">
+                            <i class="fab fa-whatsapp text-lg"></i> WhatsApp Admin for Code
+                        </a>
+                    </div>
                 </div>
             </div>
 
             <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
-                <h2 class="font-black text-slate-400 mb-6 uppercase text-xs tracking-widest">Already have a code?</h2>
-                <div class="flex flex-col gap-4">
+                <div class="flex border-b border-slate-100 mb-6">
+                    <div id="tab-voucher" onclick="switchReconnectTab('voucher')" class="reconnect-tab active flex-1 text-center">Use Voucher</div>
+                    <div id="tab-mpesa" onclick="switchReconnectTab('mpesa')" class="reconnect-tab flex-1 text-center">Claim M-Pesa</div>
+                </div>
+
+                <div id="view-voucher" class="flex flex-col gap-4">
                     <input type="text" id="accessCode" placeholder="ENTER CODE" 
                            class="w-full p-5 rounded-2xl border border-slate-100 text-center font-mono text-xl font-black uppercase tracking-[0.4em] outline-none focus:ring-4 focus:ring-slate-50 focus:border-blue-500 bg-slate-50">
                     <button onclick="connectToWifi()" id="connectBtn" class="bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all">
                         Connect Device
                     </button>
+                </div>
+
+                <div id="view-mpesa" class="hidden flex flex-col gap-4">
+                    <input type="text" id="mpesaRef" placeholder="e.g. RJK1234567" 
+                           class="w-full p-5 rounded-2xl border border-slate-100 text-center font-mono text-lg font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-slate-50 focus:border-blue-500 bg-slate-50">
+                    <button onclick="claimByMpesa()" id="claimBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all">
+                        Verify Payment
+                    </button>
+                    <p class="text-[9px] text-slate-400 text-center uppercase font-bold leading-tight">Enter the 10-digit M-Pesa code from your SMS to retrieve your voucher.</p>
                 </div>
             </div>
         </div>
@@ -125,6 +156,21 @@
                 document.getElementById('overlayMsg').innerText = msg;
                 overlay.classList.remove('hidden');
             } else { overlay.classList.add('hidden'); }
+        }
+
+        function switchReconnectTab(tab) {
+            const vTab = document.getElementById('tab-voucher');
+            const mTab = document.getElementById('tab-mpesa');
+            const vView = document.getElementById('view-voucher');
+            const mView = document.getElementById('view-mpesa');
+
+            if(tab === 'voucher') {
+                vTab.classList.add('active'); mTab.classList.remove('active');
+                vView.classList.remove('hidden'); mView.classList.add('hidden');
+            } else {
+                mTab.classList.add('active'); vTab.classList.remove('active');
+                mView.classList.remove('hidden'); vView.classList.add('hidden');
+            }
         }
 
         async function fetchPackages() {
@@ -201,12 +247,37 @@
                     const result = await response.json();
                     if (result.status === "success") {
                         clearInterval(interval);
+                        switchReconnectTab('voucher');
                         document.getElementById('accessCode').value = result.code;
                         setOverlay(true, "Payment Confirmed!", "Your high-speed session is starting...");
                         setTimeout(() => connectToWifi(), 1000); 
                     }
                 } catch (e) {}
             }, 4000); 
+        }
+
+        async function claimByMpesa() {
+            const ref = document.getElementById('mpesaRef').value.trim().toUpperCase();
+            if(!ref || ref.length < 5) return updateStatus("Enter a valid M-Pesa Reference", "red");
+
+            setOverlay(true, "Verifying Reference", "Searching for your payment...");
+            try {
+                // Note: We will need to add this 'claimPayment' action to code.gs
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=claimPayment&ref=${ref}`);
+                const result = await response.json();
+                setOverlay(false);
+                
+                if(result.status === "success") {
+                    switchReconnectTab('voucher');
+                    document.getElementById('accessCode').value = result.code;
+                    updateStatus("Voucher Found!", "green");
+                } else {
+                    updateStatus(result.message || "Reference not found yet.", "red");
+                }
+            } catch (e) {
+                setOverlay(false);
+                updateStatus("System error. Try again.", "red");
+            }
         }
 
         async function connectToWifi() {
