@@ -10,75 +10,170 @@
     <style>
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        .settings-tab-content { display: none; }
+        .settings-tab-content.active { display: block; }
         @media (max-width: 768px) { .sidebar-hidden { transform: translateX(-100%); } }
         .chart-cage { position: relative; height: 280px; width: 100%; }
-        .status-active { background-color: #dcfce7; color: #166534; } 
-        .status-expired { background-color: #fee2e2; color: #991b1b; } 
-        .status-disabled { background-color: #fef3c7; color: #92400e; }
-        .guide-step { border-left: 4px solid #3b82f6; padding-left: 1.5rem; margin-bottom: 2rem; position: relative; }
-        .guide-step::before { content: ''; position: absolute; left: -10px; top: 0; width: 16px; height: 16px; background: #3b82f6; border-radius: 50%; }
+        
+        /* Modern Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Hide scrollbar for horizontal tabs on mobile */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Sidebar Group Header */
+        .nav-group-header { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.5rem; padding-left: 0.75rem; }
+        
+        /* Active Nav Button */
+        .nav-btn.active { background-color: #eff6ff; color: #2563eb; font-weight: 700; }
+        .nav-btn.active i { color: #2563eb; }
+
+        /* Custom Table Tabs */
+        .table-tab { padding: 0.75rem 1.5rem; font-size: 0.875rem; font-weight: 600; color: #64748b; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+        .table-tab:hover { color: #0f172a; }
+        .table-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+        .tab-badge { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-left: 6px; font-weight: 800; }
+        .table-tab.active .tab-badge { background: #dbeafe; color: #2563eb; }
+
+        /* Settings Sidebar Tabs - FIXED FOR MOBILE */
+        .settings-tab-btn { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #64748b; transition: all 0.2s; text-align: left; white-space: nowrap; }
+        .settings-tab-btn:hover { background-color: #f1f5f9; color: #0f172a; }
+        .settings-tab-btn.active { background-color: #eff6ff; color: #2563eb; }
     </style>
 </head>
-<body class="bg-[#f8fafc] font-sans text-slate-900 overflow-x-hidden">
+<body class="bg-[#f8fafc] font-sans text-slate-800 overflow-hidden flex h-screen relative">
 
-    <div id="loginOverlay" class="fixed inset-0 bg-slate-900 z-[200] flex items-center justify-center p-4">
+    <div id="loginOverlay" class="fixed inset-0 bg-slate-900 z-[200] flex items-center justify-center p-4 transition-all duration-300">
         <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md text-center">
             <h1 class="text-2xl font-black text-slate-900 mb-2">RESTRICTED ACCESS</h1>
             <p class="text-slate-500 mb-6">Enter Admin Password to continue</p>
             <input type="password" id="adminPassInput" placeholder="••••••••" 
                    class="w-full p-4 border border-slate-200 rounded-xl mb-4 text-center text-xl tracking-widest outline-none focus:ring-2 focus:ring-blue-500">
-            <button onclick="checkLogin()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold hover:bg-slate-800 transition">Login</button>
+            <button id="loginBtn" onclick="checkLogin()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50">Login</button>
             <p id="loginError" class="text-red-500 mt-4 font-semibold hidden">Incorrect Password.</p>
         </div>
     </div>
 
-    <div class="md:hidden bg-slate-900 text-white p-4 flex justify-between items-center fixed top-0 w-full z-[100]">
-        <h1 class="font-black tracking-tight">SNOOKUMTECH ADMIN</h1>
-        <button onclick="toggleSidebar()"><i class="fas fa-bars text-xl"></i></button>
+    <div class="md:hidden bg-white border-b border-slate-200 p-4 flex justify-between items-center fixed top-0 w-full z-[100] h-16">
+        <h1 id="mobileBrandName" class="font-black text-blue-900 tracking-tight">SNOOKUMTECH</h1>
+        <button onclick="toggleSidebar()"><i class="fas fa-bars text-xl text-slate-600"></i></button>
     </div>
 
-    <div id="mainDashboard" class="flex min-h-screen blur-md opacity-0 transition-all duration-500 pointer-events-none pt-14 md:pt-0">
-        
-        <div id="sidebar" class="fixed md:relative z-[110] w-64 bg-slate-900 text-slate-300 p-6 shadow-xl flex flex-col min-h-screen transition-transform duration-300 sidebar-hidden md:transform-none">
-            <h1 class="text-white text-2xl font-black mb-10 tracking-tight hidden md:block">SNOOKUMTECH ADMIN</h1>
-            <nav class="space-y-2 flex-1">
-                <button id="btn-dashboard" onclick="switchTab('dashboard')" class="nav-btn w-full flex items-center space-x-3 p-3 bg-blue-600 text-white rounded-xl transition">
-                    <i class="fas fa-chart-line w-5"></i> <span>Dashboard</span>
-                </button>
-                <button id="btn-packages" onclick="switchTab('packages')" class="nav-btn w-full flex items-center space-x-3 p-3 hover:bg-slate-800 rounded-xl transition">
-                    <i class="fas fa-box-open w-5"></i> <span>Packages</span>
-                </button>
-                <button id="btn-transactions" onclick="switchTab('transactions')" class="nav-btn w-full flex items-center space-x-3 p-3 hover:bg-slate-800 rounded-xl transition">
-                    <i class="fas fa-history w-5"></i> <span>Transactions</span>
-                </button>
-                <button id="btn-mikrotik" onclick="switchTab('mikrotik')" class="nav-btn w-full flex items-center space-x-3 p-3 hover:bg-slate-800 rounded-xl transition">
-                    <i class="fas fa-server w-5"></i> <span>MikroTik Setup</span>
-                </button>
-                <button id="btn-guide" onclick="switchTab('guide')" class="nav-btn w-full flex items-center space-x-3 p-3 hover:bg-slate-800 rounded-xl transition text-yellow-400">
-                    <i class="fas fa-book w-5"></i> <span>Setup Guide</span>
-                </button>
-                <button onclick="showManualModal()" class="w-full flex items-center space-x-3 p-3 hover:bg-slate-800 rounded-xl transition text-green-400">
-                    <i class="fas fa-plus-circle w-5"></i> <span>Manual Voucher</span>
-                </button>
-            </nav>
-            <button onclick="location.reload()" class="flex items-center space-x-3 p-3 text-red-400 hover:bg-red-500/10 rounded-xl transition mt-auto">
-                <i class="fas fa-sign-out-alt w-5"></i> <span>Logout</span>
+    <div id="sidebar" class="fixed md:relative z-[110] w-64 bg-white border-r border-slate-200 flex flex-col h-screen transition-transform duration-300 sidebar-hidden md:transform-none shrink-0">
+        <div class="h-16 flex items-center px-6 border-b border-slate-100 shrink-0">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3 shadow-md shadow-blue-200">
+                <i class="fas fa-wifi text-white text-sm"></i>
+            </div>
+            <h1 id="sidebarBrandName" class="text-slate-900 text-lg font-black tracking-tight">Veltrix<span class="text-blue-600">ISP</span></h1>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-4 py-4">
+            <button id="btn-dashboard" onclick="switchTab('dashboard')" class="nav-btn w-full flex items-center space-x-3 p-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition mb-1">
+                <i class="fas fa-home w-5 text-center text-slate-400"></i> <span class="text-sm font-medium">Dashboard</span>
+            </button>
+
+            <div class="nav-group-header">Users</div>
+            <button id="btn-users" onclick="switchTab('users')" class="nav-btn active w-full flex items-center space-x-3 p-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition mb-1">
+                <i class="fas fa-users w-5 text-center text-slate-400"></i> <span class="text-sm font-medium">Active Users</span>
+            </button>
+            <button id="btn-expiry" onclick="switchTab('expiry')" class="nav-btn w-full flex items-center space-x-3 p-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition mb-1">
+                <i class="fas fa-user-clock w-5 text-center text-slate-400"></i> <span class="text-sm font-medium">Expiry Dates</span>
+            </button>
+            <button id="btn-bindings" onclick="switchTab('bindings')" class="nav-btn w-full flex items-center space-x-3 p-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition mb-1">
+                <i class="fas fa-network-wired w-5 text-center text-slate-400"></i> <span class="text-sm font-medium">IP Bindings</span>
+            </button>
+
+            <div class="nav-group-header">Finance</div>
+            <button id="btn-packages" onclick="switchTab('packages')" class="nav-btn w-full flex items-center space-x-3 p-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition mb-1">
+                <i class="fas fa-box-open w-5 text-center text-slate-400"></i> <span class="text-sm font-medium">Packages</span>
+            </button>
+            <button id="btn-transactions" onclick="switchTab('transactions')" class="nav-btn w-full flex items-center space-x-3 p-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition mb-1">
+                <i class="fas fa-money-bill-wave w-5 text-center text-slate-400"></i> <span class="text-sm font-medium">Payments</span>
+            </button>
+            <button onclick="showManualModal()" class="nav-btn w-full flex items-center space-x-3 p-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition mb-1">
+                <i class="fas fa-ticket-alt w-5 text-center text-slate-400"></i> <span class="text-sm font-medium">Vouchers</span>
+            </button>
+
+            <div class="nav-group-header">Devices</div>
+            <button id="btn-mikrotik" onclick="switchTab('mikrotik')" class="nav-btn w-full flex items-center space-x-3 p-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition mb-1">
+                <i class="fas fa-server w-5 text-center text-slate-400"></i> <span class="text-sm font-medium">MikroTik</span>
+            </button>
+
+            <div class="nav-group-header">System</div>
+            <button id="btn-guide" onclick="switchTab('guide')" class="nav-btn w-full flex items-center space-x-3 p-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition mb-1">
+                <i class="fas fa-book w-5 text-center text-slate-400"></i> <span class="text-sm font-medium">Setup Guide</span>
             </button>
         </div>
 
-        <div class="flex-1 p-4 md:p-8 overflow-y-auto">
+        <div class="p-4 border-t border-slate-100 shrink-0">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm flex items-center justify-center text-slate-500 font-bold">AD</div>
+                <div>
+                    <p class="text-sm font-bold text-slate-900 leading-tight">Admin User</p>
+                    <p class="text-[10px] text-slate-500">Super Administrator</p>
+                </div>
+            </div>
+            <button onclick="location.reload()" class="w-full flex items-center justify-center space-x-2 p-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg transition">
+                <i class="fas fa-sign-out-alt"></i> <span>Sign Out</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="mainContent" class="flex-1 flex flex-col h-screen overflow-hidden pt-16 md:pt-0 blur-md opacity-0 transition-all duration-500 pointer-events-none">
+        
+        <div class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0 shadow-sm z-10 relative">
+            <div class="relative hidden md:block w-96">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input type="text" placeholder="Search users, payments, or packages..." 
+                       class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+            </div>
+            <div class="md:hidden font-bold text-slate-800">Dashboard</div>
+            <div class="flex items-center gap-2 md:gap-4">
+                <button class="hidden md:flex items-center gap-2 px-4 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 transition">Start Free Trial</button>
+                <div class="w-px h-6 bg-slate-200 hidden md:block"></div>
+                
+                <div class="relative flex items-center">
+                    <button onclick="toggleNotifications(event)" class="relative p-2 text-slate-400 hover:text-slate-600 transition">
+                        <i class="far fa-bell text-lg"></i>
+                        <span id="bellBadge" class="hidden absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                    </button>
+                    <div id="notificationDropdown" class="hidden absolute right-0 top-full mt-2 w-screen max-w-[calc(100vw-2rem)] md:max-w-sm bg-white rounded-xl shadow-xl border border-slate-100 z-[150] overflow-hidden -mr-2 md:mr-0">
+                        <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h4 class="font-bold text-slate-800 text-sm">System Alerts</h4>
+                            <button onclick="clearAlerts()" class="text-[10px] text-blue-600 font-bold hover:underline">Mark all read</button>
+                        </div>
+                        <div class="max-h-80 overflow-y-auto" id="alertList">
+                            <div class="p-8 text-center text-slate-400 text-sm"><i class="fas fa-check-circle text-green-400 text-2xl mb-2 block"></i>All systems operational.</div>
+                        </div>
+                        <div class="p-3 text-center border-t border-slate-100">
+                            <button class="text-xs font-bold text-slate-500 hover:text-slate-800 transition">View All Logs</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="showSettingsModal()" class="p-2 text-slate-400 hover:text-slate-600 transition">
+                    <i class="fas fa-cog text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8" onclick="closeDropdowns()">
             <div id="statusAlert" class="fixed top-20 right-4 z-[150] px-4 py-2 rounded-lg text-sm font-bold hidden text-white shadow-lg"></div>
 
-            <div id="dashboardTab" class="tab-content active">
-                <h2 class="text-2xl md:text-3xl font-bold mb-8">ISP Overview</h2>
+            <div id="dashboardTab" class="tab-content active max-w-7xl mx-auto">
+                <h2 class="text-2xl md:text-3xl font-bold mb-8 text-slate-900 tracking-tight">ISP Overview</h2>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-8">
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
                         <p class="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Total Sales</p>
                         <h3 id="totalSales" class="text-lg font-black text-blue-600">KES 0</h3>
                     </div>
                     <div class="bg-white p-4 rounded-2xl shadow-sm border-l-4 border-l-green-500 shadow-md">
-                        <p class="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Income Today</p>
-                        <h3 id="incomeToday" class="text-lg font-black text-green-600">KES 0</h3>
+                        <p class="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Net Profit</p>
+                        <h3 id="netProfit" class="text-lg font-black text-green-600">KES 0</h3>
                     </div>
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
                         <p class="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Active Users</p>
@@ -106,171 +201,351 @@
                         <div id="activityFeed" class="space-y-3"></div>
                     </div>
                 </div>
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="p-4 border-b flex flex-col md:row justify-between gap-4">
-                        <h4 class="font-bold text-slate-700">User Management</h4>
-                        <input type="text" id="adminSearch" onkeyup="filterTable('adminTableBody')" placeholder="Search codes..." class="p-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-xs">
+            </div>
+
+            <div id="usersTab" class="tab-content max-w-7xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Active Users</h2>
+                        <p class="text-sm text-slate-500 mt-1">Manage Hotspot and PPPoE clients on your network.</p>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse min-w-[600px]">
-                            <thead class="bg-slate-50 border-b">
+                    <div class="flex gap-3">
+                        <button class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 shadow-sm flex items-center gap-2 transition">
+                            <i class="fas fa-cloud-download-alt text-slate-400"></i> Import Users
+                        </button>
+                        <button onclick="showManualModal()" class="px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-bold text-white hover:bg-blue-700 shadow-sm shadow-blue-200 flex items-center gap-2 transition">
+                            <i class="fas fa-plus"></i> Create User
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="flex border-b border-slate-200 overflow-x-auto hide-scrollbar">
+                        <div onclick="filterUserView('All')" id="tab-all" class="table-tab active whitespace-nowrap">All <span id="count-all" class="tab-badge">0</span></div>
+                        <div onclick="filterUserView('Hotspot')" id="tab-hotspot" class="table-tab whitespace-nowrap">Hotspot <span id="count-hotspot" class="tab-badge">0</span></div>
+                        <div onclick="filterUserView('PPPoE')" id="tab-pppoe" class="table-tab whitespace-nowrap">PPPoE <span id="count-pppoe" class="tab-badge">0</span></div>
+                        <div onclick="filterUserView('Paused')" id="tab-paused" class="table-tab whitespace-nowrap">Paused <span id="count-paused" class="tab-badge">0</span></div>
+                    </div>
+
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <div class="relative w-full md:w-72">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="userSearch" onkeyup="filterTable('userTableBody', 'userSearch')" placeholder="Search users by name, phone or code..." 
+                                   class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        <button onclick="refreshDataSilently()" class="ml-2 p-1.5 text-slate-500 border border-slate-300 rounded-md bg-white hover:bg-slate-50" title="Refresh Data"><i class="fas fa-sync-alt text-xs"></i></button>
+                    </div>
+
+                    <div class="overflow-x-auto min-h-[400px]">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead class="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th class="p-4 font-bold text-slate-600 text-xs uppercase">User</th>
-                                    <th class="p-4 font-bold text-slate-600 text-xs uppercase">Package</th>
-                                    <th class="p-4 font-bold text-slate-600 text-xs uppercase text-center">Code</th>
-                                    <th class="p-4 font-bold text-slate-600 text-xs uppercase">Status</th>
-                                    <th class="p-4 font-bold text-slate-600 text-xs uppercase text-right">Action</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">User details</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Package</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Network Info</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="adminTableBody"></tbody>
+                            <tbody id="userTableBody" class="divide-y divide-slate-100">
+                                <tr><td colspan="5" class="text-center py-10 text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> Loading users...</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
-            <div id="packagesTab" class="tab-content">
+            <div id="expiryTab" class="tab-content max-w-7xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Expiry Dates</h2>
+                        <p class="text-sm text-slate-500 mt-1">Track upcoming renewals and recently expired accounts.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <div class="relative w-full md:w-72">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="expirySearch" onkeyup="filterTable('expiryTableBody', 'expirySearch')" placeholder="Search by name or phone..." 
+                                   class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto min-h-[400px]">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">User details</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Package / Type</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Expiry Date</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Time Remaining</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expiryTableBody" class="divide-y divide-slate-100">
+                                <tr><td colspan="4" class="text-center py-10 text-slate-400">Loading expiry data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="bindingsTab" class="tab-content max-w-7xl mx-auto">
+                <div class="flex flex-col md:flex-row justify-between md:items-end gap-4 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">IP Bindings</h2>
+                        <p class="text-sm text-slate-500 mt-1">Manage bypassed devices like Smart TVs, CCTVs, and Admin phones.</p>
+                    </div>
+                    <button onclick="showBindingModal()" class="px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-bold text-white hover:bg-blue-700 shadow-sm shadow-blue-200 flex items-center gap-2 transition">
+                        <i class="fas fa-plus"></i> Add Binding
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <div class="relative w-full md:w-72">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="bindSearch" onkeyup="filterTable('bindingsTableBody', 'bindSearch')" placeholder="Search by owner, MAC, or IP..." 
+                                   class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto min-h-[400px]">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Device Owner</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">MAC Address</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">IP Address</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Type / Status</th>
+                                    <th class="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bindingsTableBody" class="divide-y divide-slate-100">
+                                <tr><td colspan="5" class="text-center py-10 text-slate-400">Loading IP Bindings...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="packagesTab" class="tab-content max-w-7xl mx-auto">
                 <div class="flex justify-between items-center mb-8">
-                    <h2 class="text-2xl md:text-3xl font-bold">Manage Packages</h2>
-                    <button onclick="showPackageModal()" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition">
-                        <i class="fas fa-plus mr-2"></i> Add New Package
+                    <h2 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Manage Packages</h2>
+                    <button onclick="showPackageModal()" class="px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-bold text-white hover:bg-blue-700 shadow-sm shadow-blue-200 flex items-center gap-2 transition">
+                        <i class="fas fa-plus"></i> Add New Package
                     </button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="packageGrid"></div>
             </div>
-
-            <div id="transactionsTab" class="tab-content">
-                <h2 class="text-2xl md:text-3xl font-bold mb-8">Transaction History</h2>
-                <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-                    <div class="p-4 border-b">
-                        <input type="text" onkeyup="filterTable('txnTableBody')" placeholder="Search records..." class="w-full max-w-sm p-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            
+            <div id="transactionsTab" class="tab-content max-w-7xl mx-auto">
+                <h2 class="text-2xl font-bold mb-6 text-slate-900 tracking-tight">Transaction History</h2>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex items-center bg-slate-50/50">
+                        <div class="relative w-full md:w-72">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="txnSearch" onkeyup="filterTable('txnTableBody', 'txnSearch')" placeholder="Search records by phone or reference..." class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left min-w-[600px]">
-                            <thead class="bg-slate-50 border-b text-[10px] uppercase text-slate-500 font-bold">
+                    <div class="overflow-x-auto min-h-[400px]">
+                        <table class="w-full text-left whitespace-nowrap">
+                            <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase text-slate-500 font-bold">
                                 <tr>
-                                    <th class="p-4">Time/Date</th>
-                                    <th class="p-4">Phone Number</th>
-                                    <th class="p-4">Access Plan</th>
-                                    <th class="p-4">Revenue</th>
-                                    <th class="p-4">Reference</th>
+                                    <th class="py-3 px-4">Time/Date</th>
+                                    <th class="py-3 px-4">Phone Number</th>
+                                    <th class="py-3 px-4">Access Plan</th>
+                                    <th class="py-3 px-4">Revenue</th>
+                                    <th class="py-3 px-4">Reference</th>
                                 </tr>
                             </thead>
-                            <tbody id="txnTableBody"></tbody>
+                            <tbody id="txnTableBody" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
-
-            <div id="mikrotikTab" class="tab-content">
-                <h2 class="text-2xl md:text-3xl font-bold mb-8">MikroTik Configuration</h2>
+            
+            <div id="mikrotikTab" class="tab-content max-w-7xl mx-auto">
+                <h2 class="text-2xl font-bold mb-6 text-slate-900 tracking-tight">MikroTik Configuration</h2>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-                        <h3 class="text-lg font-bold mb-6">Connection Details</h3>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="text-lg font-bold mb-6 text-slate-800">Connection Details</h3>
                         <div class="space-y-4">
                             <div>
                                 <label class="text-xs font-bold text-slate-400 uppercase">Cloud DNS / IP</label>
-                                <input type="text" id="mt_dns" placeholder="xxxxxxx.sn.mynetname.net" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="text" id="mt_dns" placeholder="xxxxxxx.sn.mynetname.net" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 mt-1">
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-slate-400 uppercase">API Username</label>
-                                <input type="text" id="mt_user" value="billing_api" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="text" id="mt_user" value="billing_api" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 mt-1">
                             </div>
                             <div>
                                 <label class="text-xs font-bold text-slate-400 uppercase">API Password</label>
-                                <input type="password" id="mt_pass" value="12345678" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="password" id="mt_pass" value="12345678" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 mt-1">
                             </div>
-                            <div class="flex flex-col space-y-2">
-                                <button onclick="saveAndGenerateScript()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold hover:bg-slate-800 transition">Save & Generate Script</button>
-                                <button onclick="testConnection()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold hover:bg-blue-700 transition">
+                            <div class="flex flex-col space-y-2 pt-2">
+                                <button onclick="saveAndGenerateScript()" class="w-full bg-slate-800 text-white p-3 rounded-xl font-bold hover:bg-slate-900 transition">Save & Generate Script</button>
+                                <button onclick="testConnection()" class="w-full bg-blue-50 text-blue-600 border border-blue-200 p-3 rounded-xl font-bold hover:bg-blue-100 transition">
                                     <i class="fas fa-plug mr-2"></i> Test Connection
                                 </button>
                             </div>
-                            <div id="conn_status" class="mt-4 text-center text-sm font-bold hidden"></div>
+                            <div id="conn_status" class="mt-2 text-center text-sm font-bold hidden"></div>
                         </div>
 
                         <div class="mt-8 pt-8 border-t border-slate-100">
-                            <h3 class="text-sm font-black text-slate-900 mb-4 uppercase tracking-widest">Manual Remote Access</h3>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Manual Remote Access</h3>
                             <div class="grid grid-cols-2 gap-3">
-                                <button onclick="openWinBox()" class="p-4 bg-blue-50 rounded-2xl border border-blue-100 hover:bg-blue-100 transition flex flex-col items-center gap-2">
-                                    <i class="fas fa-desktop text-blue-600"></i>
-                                    <span class="text-[10px] font-black text-blue-800 uppercase">WinBox</span>
+                                <button onclick="openWinBox()" class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 transition flex flex-col items-center gap-2 group">
+                                    <i class="fas fa-desktop text-slate-400 group-hover:text-blue-500 text-xl"></i>
+                                    <span class="text-[10px] font-bold text-slate-600 uppercase">WinBox</span>
                                 </button>
-                                <button onclick="openWebFig()" class="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 hover:bg-emerald-100 transition flex flex-col items-center gap-2">
-                                    <i class="fas fa-globe text-emerald-600"></i>
-                                    <span class="text-[10px] font-black text-emerald-800 uppercase">WebFig</span>
+                                <button onclick="openWebFig()" class="p-3 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-emerald-400 transition flex flex-col items-center gap-2 group">
+                                    <i class="fas fa-globe text-slate-400 group-hover:text-emerald-500 text-xl"></i>
+                                    <span class="text-[10px] font-bold text-slate-600 uppercase">WebFig</span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-slate-900 p-8 rounded-3xl shadow-sm text-green-400 font-mono text-xs overflow-hidden flex flex-col">
-                        <div class="flex justify-between items-center mb-4 text-slate-500">
-                            <span>ROUTEROS SCRIPT</span>
-                            <button onclick="copyMTCode()" class="hover:text-white"><i class="fas fa-copy"></i> Copy</button>
+                    <div class="bg-slate-900 p-6 rounded-2xl shadow-lg text-green-400 font-mono text-xs overflow-hidden flex flex-col h-full min-h-[400px]">
+                        <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-800 text-slate-500">
+                            <span class="font-bold">ROUTEROS SCRIPT</span>
+                            <button onclick="copyMTCode()" class="hover:text-white px-2 py-1 bg-slate-800 rounded transition"><i class="fas fa-copy"></i> Copy</button>
                         </div>
-                        <pre id="mt_script_output" class="whitespace-pre-wrap flex-1 text-[10px]"># Fill connection details and save to view script...</pre>
+                        <pre id="mt_script_output" class="whitespace-pre-wrap flex-1 overflow-y-auto custom-scrollbar"># Fill connection details and save to view script...</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="guideTab" class="tab-content max-w-7xl mx-auto">
+                <h2 class="text-2xl font-bold mb-6 text-slate-900 tracking-tight">System Setup Guide</h2>
+                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 max-w-4xl">
+                    <div class="guide-step">
+                        <h3 class="font-black text-blue-600 uppercase tracking-wide mb-2">Phase 1: Physical Setup & First Login</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed"><strong>Hardware:</strong> Internet In to Port 1. Computer to Port 2.<br><strong>Login:</strong> Use WinBox, click Neighbors tab, login: admin / no password.<br><strong>Reset:</strong> Click Remove Configuration upon first login.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h3 class="font-black text-blue-600 uppercase tracking-wide mb-2">Phase 2: Connecting to the Internet</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed"><strong>WAN:</strong> IP > DHCP Client > [+], select ether1.<br><strong>Routes:</strong> IP > Routes > [+], set Gateway IP.<br><strong>DNS:</strong> IP > DNS, add 8.8.8.8 and 8.8.4.4. Allow Remote Requests.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h3 class="font-black text-blue-600 uppercase tracking-wide mb-2">Phase 3: Creating the Hotspot Network</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed"><strong>Bridge:</strong> Bridge > [+] name: bridge1. Add ether2 and wlan1 to ports.<br><strong>Wizard:</strong> IP > Hotspot > Hotspot Setup. Select bridge1. Set DNS Name: <b>snookum.wifi</b>.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h3 class="font-black text-blue-600 uppercase tracking-wide mb-2">Phase 4: Linking the Billing System</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed"><strong>Enable API:</strong> IP > Services > Enable <b>api (8728)</b>.<br><strong>Terminal:</strong> Paste the Script from the MikroTik Setup tab into a New Terminal.<br><strong>Radius:</strong> In Hotspot Profile, Login tab: check PAP only. Radius tab: check Use Radius.</p>
+                    </div>
+                    <div class="guide-step">
+                        <h3 class="font-black text-blue-600 uppercase tracking-wide mb-2">Phase 5: Uploading Portal Files</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed"><strong>Files:</strong> Open Files in WinBox. Find <b>hotspot</b> folder.<br><strong>Backup:</strong> Rename original login.html to login_backup.html.<br><strong>Upload:</strong> Drag your custom <b>login.html</b> into the hotspot folder.</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-start gap-4 mt-6">
+                        <i class="fas fa-info-circle text-blue-500 mt-1 text-lg"></i>
+                        <p class="text-sm font-medium text-blue-800">Verification: Connect phone to Wi-Fi. Portal should pop up automatically. If not, check DNS settings.</p>
                     </div>
                 </div>
             </div>
 
-            <div id="guideTab" class="tab-content">
-                <h2 class="text-2xl md:text-3xl font-bold mb-8 text-slate-900">MikroTik Router & Billing System Setup Guide</h2>
-                <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 max-w-4xl">
+        </div>
+    </div>
+
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-2 md:p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col md:flex-row overflow-hidden max-h-[95vh] md:h-[600px]">
+            
+            <div class="w-full md:w-64 bg-slate-50 border-b md:border-b-0 md:border-r border-slate-200 p-4 md:p-6 flex flex-col shrink-0">
+                <div class="flex justify-between items-center mb-4 md:mb-6">
+                    <h2 class="text-xl font-black text-slate-900">Settings</h2>
+                    <button onclick="hideSettingsModal()" class="md:hidden text-slate-500 hover:text-slate-800"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                
+                <div class="flex md:flex-col gap-2 overflow-x-auto hide-scrollbar pb-2 md:pb-0">
+                    <button onclick="switchSettingsTab('general')" id="set-btn-general" class="settings-tab-btn active w-auto md:w-full shrink-0"><i class="fas fa-sliders-h w-5"></i> General</button>
+                    <button onclick="switchSettingsTab('security')" id="set-btn-security" class="settings-tab-btn w-auto md:w-full shrink-0"><i class="fas fa-lock w-5"></i> Security</button>
+                    <button onclick="switchSettingsTab('integrations')" id="set-btn-integrations" class="settings-tab-btn w-auto md:w-full shrink-0"><i class="fas fa-plug w-5"></i> Integrations</button>
+                </div>
+                
+                <div class="mt-auto hidden md:block">
+                    <button onclick="hideSettingsModal()" class="w-full p-3 text-slate-500 hover:bg-slate-200 rounded-xl font-bold transition text-sm">Close</button>
+                </div>
+            </div>
+            
+            <div class="flex-1 p-5 md:p-8 overflow-y-auto">
+                
+                <div id="set-tab-general" class="settings-tab-content active space-y-6">
+                    <h3 class="text-lg font-bold text-slate-800 border-b pb-2">General ISP Configuration</h3>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">ISP Brand Name</label>
+                        <p class="text-[10px] text-slate-400 mb-2">This name appears on customer receipts and portals.</p>
+                        <input type="text" id="set_ispName" placeholder="e.g. Veltrix ISP" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 max-w-md">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Support Contact Number</label>
+                        <p class="text-[10px] text-slate-400 mb-2">Used for WhatsApp support links on the login page.</p>
+                        <input type="text" id="set_supportPhone" placeholder="2547XXXXXXXX" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 max-w-md">
+                    </div>
+                    <button onclick="saveAllSettings()" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition w-full md:w-auto">Save General Settings</button>
+                </div>
+
+                <div id="set-tab-security" class="settings-tab-content space-y-6">
+                    <h3 class="text-lg font-bold text-slate-800 border-b pb-2">Admin Access Control</h3>
+                    <div class="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-xl mb-4">
+                        <p class="text-xs font-bold text-orange-800">Warning: Saving a new password will require you to log in again on your next visit.</p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wide">Dashboard Password</label>
+                        <input type="password" id="set_adminPass" placeholder="••••••••" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 max-w-md mt-1">
+                    </div>
+                    <button onclick="saveAllSettings()" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition w-full md:w-auto">Update Password</button>
+                </div>
+
+                <div id="set-tab-integrations" class="settings-tab-content space-y-6">
+                    <h3 class="text-lg font-bold text-slate-800 border-b pb-2">API & Gateway Connections</h3>
                     
-                    <div class="guide-step">
-                        <h3 class="font-black text-blue-600 uppercase tracking-wide mb-2">Phase 1: Physical Setup & First Login</h3>
-                        <p class="text-sm text-slate-600 leading-relaxed">
-                            <strong>Hardware:</strong> Internet In to Port 1. Computer to Port 2.<br>
-                            <strong>Login:</strong> Use WinBox, click Neighbors tab, login: admin / no password.<br>
-                            <strong>Reset:</strong> Click Remove Configuration upon first login.
-                        </p>
+                    <div class="p-5 border border-slate-200 rounded-2xl bg-slate-50">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-8 h-8 rounded bg-green-100 text-green-600 flex items-center justify-center"><i class="fas fa-wallet"></i></div>
+                            <h4 class="font-bold text-slate-800">PayHero M-Pesa Gateway</h4>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Channel ID</label>
+                                <input type="text" id="set_phChannel" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase">Basic Auth Token</label>
+                                <input type="password" id="set_phAuth" class="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm">
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="guide-step">
-                        <h3 class="font-black text-blue-600 uppercase tracking-wide mb-2">Phase 2: Connecting to the Internet</h3>
-                        <p class="text-sm text-slate-600 leading-relaxed">
-                            <strong>WAN:</strong> IP > DHCP Client > [+], select ether1.<br>
-                            <strong>Routes:</strong> IP > Routes > [+], set Gateway IP.<br>
-                            <strong>DNS:</strong> IP > DNS, add 8.8.8.8 and 8.8.4.4. Allow Remote Requests.
-                        </p>
+                    <div class="p-5 border border-slate-200 rounded-2xl bg-slate-50 opacity-60">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fas fa-sms"></i></div>
+                            <h4 class="font-bold text-slate-800">SMS Gateway (Coming Soon)</h4>
+                        </div>
+                        <p class="text-xs text-slate-500">Integration for Advanta or AfricasTalking to send automated expiry reminders.</p>
                     </div>
-
-                    <div class="guide-step">
-                        <h3 class="font-black text-blue-600 uppercase tracking-wide mb-2">Phase 3: Creating the Hotspot Network</h3>
-                        <p class="text-sm text-slate-600 leading-relaxed">
-                            <strong>Bridge:</strong> Bridge > [+] name: bridge1. Add ether2 and wlan1 to ports.<br>
-                            <strong>Wizard:</strong> IP > Hotspot > Hotspot Setup. Select bridge1. Set DNS Name: <b>snookum.wifi</b>.
-                        </p>
-                    </div>
-
-                    <div class="guide-step">
-                        <h3 class="font-black text-blue-600 uppercase tracking-wide mb-2">Phase 4: Linking the Billing System</h3>
-                        <p class="text-sm text-slate-600 leading-relaxed">
-                            <strong>Enable API:</strong> IP > Services > Enable <b>api (8728)</b>.<br>
-                            <strong>Terminal:</strong> Paste the Script from the MikroTik Setup tab into a New Terminal.<br>
-                            <strong>Radius:</strong> In Hotspot Profile, Login tab: check PAP only. Radius tab: check Use Radius.
-                        </p>
-                    </div>
-
-                    <div class="guide-step">
-                        <h3 class="font-black text-blue-600 uppercase tracking-wide mb-2">Phase 5: Uploading Portal Files</h3>
-                        <p class="text-sm text-slate-600 leading-relaxed">
-                            <strong>Files:</strong> Open Files in WinBox. Find <b>hotspot</b> folder.<br>
-                            <strong>Backup:</strong> Rename original login.html to login_backup.html.<br>
-                            <strong>Upload:</strong> Drag your custom <b>login.html</b> into the hotspot folder.<br>
-                            <strong>Contact:</strong> contact @mrsnookum for your custom login.html file. +254712153539
-                        </p>
-                    </div>
-
-                    <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 flex items-center gap-4">
-                        <div class="text-3xl text-blue-600"><i class="fas fa-info-circle"></i></div>
-                        <p class="text-xs font-bold text-blue-800 uppercase">Verification: Connect phone to Wi-Fi. Portal should pop up automatically.</p>
-                    </div>
+                    
+                    <button onclick="saveAllSettings()" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition w-full md:w-auto">Save Integrations</button>
                 </div>
             </div>
         </div>
     </div>
 
+
+    <div id="manualModal" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black">New Voucher</h2>
+                <button onclick="hideManualModal()"><i class="fas fa-times text-slate-400"></i></button>
+            </div>
+            <select id="mPkg" class="w-full p-4 border rounded-xl mb-4 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 font-medium"></select>
+            <input type="text" id="mPhone" placeholder="Phone Number" class="w-full p-4 border rounded-xl mb-6 outline-none focus:ring-2 focus:ring-blue-500">
+            <button onclick="generateManual()" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-xl font-bold shadow-lg transition">Generate Code</button>
+        </div>
+    </div>
+    
     <div id="pkgModal" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
             <h2 class="text-2xl font-black mb-6">Create New Package</h2>
@@ -281,6 +556,40 @@
                 <div class="flex gap-3 pt-4">
                     <button onclick="hidePackageModal()" class="flex-1 bg-slate-100 p-4 rounded-xl font-bold">Cancel</button>
                     <button onclick="addPackage()" class="flex-1 bg-blue-600 text-white p-4 rounded-xl font-bold">Add Package</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="bindingModal" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black">Add IP Binding</h2>
+                <button onclick="hideBindingModal()"><i class="fas fa-times text-slate-400"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase">Device Owner</label>
+                    <input type="text" id="bindOwner" placeholder="e.g. Admin Phone, CCTV" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 mt-1">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase">MAC Address</label>
+                    <input type="text" id="bindMac" placeholder="00:11:22:33:44:55" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 mt-1 uppercase font-mono">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase">Assign IP (Optional)</label>
+                    <input type="text" id="bindIp" placeholder="e.g. 10.0.0.50" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 mt-1 font-mono">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-400 uppercase">Binding Type</label>
+                    <select id="bindType" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 mt-1 bg-white font-medium">
+                        <option value="bypassed">Bypassed (Free Internet)</option>
+                        <option value="blocked">Blocked (No Internet)</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="hideBindingModal()" class="flex-1 bg-slate-100 p-3 rounded-xl font-bold">Cancel</button>
+                    <button onclick="addBinding()" class="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition">Save Binding</button>
                 </div>
             </div>
         </div>
@@ -300,233 +609,464 @@
         </div>
     </div>
 
-    <div id="manualModal" class="fixed inset-0 bg-slate-900/60 hidden z-[250] flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-black">New Voucher</h2>
-                <button onclick="hideManualModal()"><i class="fas fa-times text-slate-400"></i></button>
-            </div>
-            <select id="mPkg" class="w-full p-4 border rounded-xl mb-4 bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500 font-medium"></select>
-            <input type="text" id="mPhone" placeholder="Phone Number" class="w-full p-4 border rounded-xl mb-6 outline-none focus:ring-2 focus:ring-blue-500">
-            <button onclick="generateManual()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold shadow-lg transform active:scale-95 transition">Generate Code</button>
-        </div>
-    </div>
-
-    <footer class="mt-auto py-8 border-t border-blue-50 bg-white">
-        <div class="max-w-6xl mx-auto px-4 text-center">
-            <p class="text-slate-400 text-sm font-medium">
-                &copy; 2026 WIFI INTERNET. All Rights Reserved.
-            </p>
-            <p class="mt-2 text-slate-500 text-xs tracking-wide uppercase">
-                Developed by 
-                <a href="https://mrsnookum.github.io/Brighton-Portfolio/" 
-                   target="_blank" 
-                   rel="noopener noreferrer" 
-                   class="font-bold text-blue-600 hover:text-blue-800 transition-colors duration-200">
-                    Brighton the Dev
-                </a>
-            </p>
-        </div>
-    </footer>
-
     <script>
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhREJYNGq62z1TbaYfW1_cG7W8k6bzA3to4sjAJIHfUsVdyAdFSJyCQCbAe7Fueik/exec';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1dBa6FDsrRJbiw2vjg5IlQW0ZQJuG_LjMOhjNgrTjG4efetZcJ1IEDGhQFPnvzzE/exec'; // YOUR LIVE WEB APP
         let chartInstance = null;
         let packagesData = [];
-        const ADMIN_PASSWORD = "1234";
+        let allUsersData = [];
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('sidebar-hidden'); }
 
         function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(t => { t.classList.remove('active'); t.style.display = 'none'; });
+            document.querySelectorAll('.tab-content').forEach(t => { t.classList.remove('active'); });
             const target = document.getElementById(tabId + 'Tab');
-            if(target) { target.classList.add('active'); target.style.display = 'block'; }
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('bg-blue-600', 'text-white'));
+            if(target) { target.classList.add('active'); }
+            
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('active', 'bg-slate-50', 'text-blue-600');
+                b.querySelector('i').classList.remove('text-blue-600');
+                b.querySelector('i').classList.add('text-slate-400');
+            });
+            
             const clickedBtn = document.getElementById('btn-' + tabId);
-            if(clickedBtn) clickedBtn.classList.add('bg-blue-600', 'text-white');
+            if(clickedBtn) {
+                clickedBtn.classList.add('active');
+                clickedBtn.querySelector('i').classList.remove('text-slate-400');
+            }
             if (window.innerWidth < 768) toggleSidebar();
+        }
+
+        function switchSettingsTab(tabId) {
+            document.querySelectorAll('.settings-tab-content').forEach(t => { t.classList.remove('active'); });
+            document.getElementById('set-tab-' + tabId).classList.add('active');
+            
+            document.querySelectorAll('.settings-tab-btn').forEach(b => { b.classList.remove('active'); });
+            document.getElementById('set-btn-' + tabId).classList.add('active');
+        }
+
+        function toggleNotifications(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('notificationDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        function closeDropdowns() {
+            const dropdown = document.getElementById('notificationDropdown');
+            if (!dropdown.classList.contains('hidden')) {
+                dropdown.classList.add('hidden');
+            }
+        }
+
+        function filterTable(tableId, inputId) {
+            const input = document.getElementById(inputId);
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById(tableId);
+            const tr = table.getElementsByTagName("tr");
+            for (let i = 0; i < tr.length; i++) {
+                let textValue = tr[i].textContent || tr[i].innerText;
+                if (textValue.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+
+        async function checkLogin() {
+            const passInput = document.getElementById('adminPassInput').value;
+            const btn = document.getElementById('loginBtn');
+            const errorText = document.getElementById('loginError');
+
+            if (!passInput) return;
+
+            btn.innerText = "Verifying...";
+            btn.disabled = true;
+            errorText.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=getAdminData`);
+                const rawText = await response.text(); 
+                
+                const data = JSON.parse(rawText);
+                if (data.status === "error") throw new Error(data.message);
+
+                const dbPassword = (data.settings && data.settings.adminPass) ? data.settings.adminPass.toString() : "1234";
+
+                if (passInput === dbPassword) {
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('mainContent').classList.remove('blur-md', 'opacity-0', 'pointer-events-none');
+                    processFetchedData(data);
+                } else {
+                    errorText.innerText = "Incorrect Password.";
+                    errorText.classList.remove('hidden');
+                }
+            } catch (e) {
+                errorText.innerText = "Network Error. Please check connection.";
+                errorText.classList.remove('hidden');
+            } finally {
+                btn.innerText = "Login";
+                btn.disabled = false;
+            }
+        }
+
+        function refreshDataSilently() {
+            fetchAdminData();
         }
 
         async function fetchAdminData() {
             try {
                 const response = await fetch(`${APPS_SCRIPT_URL}?action=getAdminData`);
-                const data = await response.json();
-                if(data.routerDns) document.getElementById('mt_dns').value = data.routerDns;
-                packagesData = data.packages || [];
-                renderPackages();
-                updateUI(data);
-            } catch (e) { showStatus("Sync Error", "bg-red-500"); }
+                const rawText = await response.text(); 
+                const data = JSON.parse(rawText);
+                if (data.status === "error") throw new Error(data.message);
+                processFetchedData(data);
+            } catch (e) { 
+                showStatus("Sync Error", "bg-red-500"); 
+                document.getElementById('userTableBody').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500 font-bold"><i class="fas fa-exclamation-triangle text-2xl mb-2 block text-red-400"></i>Failed to load data: ${e.message}</td></tr>`;
+            }
+        }
+
+        function processFetchedData(data) {
+            if(data.settings) {
+                document.getElementById('set_adminPass').value = data.settings.adminPass || "1234";
+                document.getElementById('set_ispName').value = data.settings.ispName || "Veltrix ISP";
+                document.getElementById('set_supportPhone').value = data.settings.supportPhone || "";
+                document.getElementById('set_phChannel').value = data.settings.phChannelId || "";
+                document.getElementById('set_phAuth').value = data.settings.phAuth || "";
+                
+                document.getElementById('sidebarBrandName').innerHTML = data.settings.ispName ? data.settings.ispName.replace("ISP", '<span class="text-blue-600">ISP</span>') : 'Veltrix<span class="text-blue-600">ISP</span>';
+                document.getElementById('mobileBrandName').innerText = data.settings.ispName || "SNOOKUMTECH";
+            }
+
+            if(data.routerDns) document.getElementById('mt_dns').value = data.routerDns;
+            packagesData = data.packages || [];
+            allUsersData = [...data.allTransactions, ...(data.pppoeUsers || [])];
+            
+            renderPackages();
+            updateUI(data);
+            renderAlerts(data.alerts || []);
+            
+            const select = document.getElementById('mPkg');
+            select.innerHTML = data.packages.map(pkg => `<option value="${pkg.name}">${pkg.name} (KES ${pkg.price})</option>`).join('');
+        }
+
+        function renderAlerts(alertsArray) {
+            const bellBadge = document.getElementById('bellBadge');
+            const alertList = document.getElementById('alertList');
+            
+            if (alertsArray.length === 0) {
+                bellBadge.classList.add('hidden');
+                alertList.innerHTML = `<div class="p-8 text-center text-slate-400 text-sm"><i class="fas fa-check-circle text-green-400 text-2xl mb-2 block"></i>All systems operational.</div>`;
+                return;
+            }
+
+            bellBadge.classList.remove('hidden');
+            
+            alertList.innerHTML = alertsArray.map(a => {
+                const isCritical = a.type.toLowerCase() === 'critical';
+                const iconColor = isCritical ? 'text-red-500' : 'text-orange-400';
+                const borderClass = isCritical ? 'border-l-red-500' : 'border-l-orange-400';
+                
+                return `
+                <div class="p-4 border-b border-slate-50 hover:bg-slate-50 transition cursor-pointer border-l-4 ${borderClass}">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fas fa-exclamation-circle ${iconColor} text-xs"></i>
+                        <span class="text-xs font-bold text-slate-800">${a.type} Alert</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500">${a.message}</p>
+                    <p class="text-[8px] text-slate-400 mt-1 uppercase font-bold tracking-wider">${a.date}</p>
+                </div>`;
+            }).join('');
+        }
+
+        async function clearAlerts() {
+            try {
+                document.getElementById('alertList').innerHTML = `<div class="p-8 text-center text-slate-400 text-sm"><i class="fas fa-spinner fa-spin text-2xl mb-2 block"></i>Clearing...</div>`;
+                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "markAlertsRead" }) });
+                if((await res.json()).status === "success") fetchAdminData();
+            } catch(e) { showStatus("Error clearing alerts", "bg-red-500"); }
+        }
+
+        async function saveAllSettings() {
+            const settingsObj = {
+                ISP_Name: document.getElementById('set_ispName').value,
+                Support_Phone: document.getElementById('set_supportPhone').value,
+                Admin_Password: document.getElementById('set_adminPass').value,
+                PH_CHANNEL_ID: document.getElementById('set_phChannel').value,
+                PH_BASIC_AUTH: document.getElementById('set_phAuth').value
+            };
+            
+            showStatus("Saving Configurations...", "bg-blue-600");
+            try {
+                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "saveSettings", settings: settingsObj }) });
+                if((await res.json()).status === "success") { 
+                    hideSettingsModal(); 
+                    showStatus("Settings Updated Successfully!", "bg-green-600");
+                    fetchAdminData();
+                }
+            } catch(e) { showStatus("Error saving settings", "bg-red-500"); }
+        }
+
+        function updateChart(stats) {
+            const ctx = document.getElementById('pkgChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: Object.keys(stats), datasets: [{ label: 'Sales', data: Object.values(stats), backgroundColor: '#3b82f6', borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
         }
 
         function renderPackages() {
             const grid = document.getElementById('packageGrid');
-            const select = document.getElementById('mPkg');
             grid.innerHTML = packagesData.map(pkg => `
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between hover:shadow-md transition group">
                     <div>
-                        <h4 class="text-xl font-black text-slate-900">${pkg.name}</h4>
-                        <p class="text-blue-600 font-bold mb-2">KES ${pkg.price}</p>
-                        <span class="text-[10px] bg-slate-100 px-2 py-1 rounded-lg uppercase font-bold text-slate-500">${pkg.duration} Mins</span>
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="text-lg font-bold text-slate-900">${pkg.name}</h4>
+                            <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-md font-bold uppercase">${pkg.duration} Mins</span>
+                        </div>
+                        <p class="text-xl font-black text-blue-600">KES ${pkg.price}</p>
                     </div>
-                    <button onclick="deletePackage('${pkg.name}')" class="mt-6 text-red-500 text-xs font-bold uppercase tracking-widest hover:text-red-700 transition">
-                        <i class="fas fa-trash-alt mr-1"></i> Delete
+                    <button onclick="deletePackage('${pkg.name}')" class="mt-6 text-slate-400 hover:text-red-500 text-xs font-bold uppercase tracking-widest text-left transition flex items-center gap-2">
+                        <i class="fas fa-trash-alt"></i> Delete Plan
                     </button>
                 </div>`).join('');
-            select.innerHTML = packagesData.map(pkg => `<option value="${pkg.name}">${pkg.name} (KES ${pkg.price})</option>`).join('');
         }
 
-        function showPackageModal() { document.getElementById('pkgModal').classList.remove('hidden'); }
-        function hidePackageModal() { document.getElementById('pkgModal').classList.add('hidden'); }
+        function getTimeLeftStr(expiryDateStr) {
+            if (!expiryDateStr || expiryDateStr === "---") return '<span class="text-slate-400">No Expiry</span>';
+            const exp = new Date(expiryDateStr);
+            const now = new Date();
+            const diff = exp - now;
+            
+            if (diff < 0) return '<span class="text-red-500 font-bold uppercase text-[10px] tracking-wide">Expired</span>';
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            
+            if (days > 0) return `<span class="text-emerald-600 font-bold text-xs">${days}d ${hours}h left</span>`;
+            return `<span class="text-orange-500 font-bold text-xs">${hours}h left</span>`;
+        }
+
+        function updateUI(data) {
+            document.getElementById('totalSales').innerText = `KES ${data.totalRevenue}`;
+            document.getElementById('netProfit').innerText = `KES ${data.netProfit || data.totalRevenue}`;
+            document.getElementById('activeUsers').innerText = data.activeCount;
+            document.getElementById('popularPkg').innerText = data.popularPlan;
+            document.getElementById('totalCount').innerText = data.totalTransactions;
+
+            const totalRecords = allUsersData.length;
+            const hotspotRecords = allUsersData.filter(t => t.type === 'Hotspot').length;
+            const pppoeRecords = allUsersData.filter(t => t.type === 'PPPoE').length;
+            const disabledRecords = allUsersData.filter(t => t.status === 'Disabled' || t.status === 'Expired' || t.status === 'Paused').length;
+            
+            document.getElementById('count-all').innerText = totalRecords;
+            document.getElementById('count-hotspot').innerText = hotspotRecords; 
+            document.getElementById('count-pppoe').innerText = pppoeRecords; 
+            document.getElementById('count-paused').innerText = disabledRecords;
+
+            renderUserTable(allUsersData);
+
+            let activeUsersWithExpiry = allUsersData.filter(u => u.expiry && u.expiry !== "---" && u.status !== 'Disabled');
+            activeUsersWithExpiry.sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+
+            if(activeUsersWithExpiry.length === 0) {
+                document.getElementById('expiryTableBody').innerHTML = `<tr><td colspan="4" class="text-center py-10 text-slate-400">No active users with expiry dates found.</td></tr>`;
+            } else {
+                document.getElementById('expiryTableBody').innerHTML = activeUsersWithExpiry.map(t => {
+                    const mainIdentifier = t.type === 'PPPoE' ? t.clientName : t.phone;
+                    const initial = mainIdentifier.toString().substring(0, 2).toUpperCase();
+                    const isPPPoE = t.type === 'PPPoE';
+                    const avatarColor = isPPPoE ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600';
+                    const timeLeft = getTimeLeftStr(t.expiry);
+
+                    return `
+                    <tr class="hover:bg-slate-50 transition group">
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center font-black text-[10px] shrink-0">${initial}</div>
+                                <p class="text-sm font-bold text-slate-900 leading-tight truncate max-w-[150px]">${mainIdentifier}</p>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <p class="text-sm font-bold text-slate-700">${t.package}</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase mt-0.5">${t.type}</p>
+                        </td>
+                        <td class="py-3 px-4 text-xs font-medium text-slate-600">${t.expiry}</td>
+                        <td class="py-3 px-4">${timeLeft}</td>
+                    </tr>`;
+                }).join('');
+            }
+
+            if(!data.ipBindings || data.ipBindings.length === 0) {
+                document.getElementById('bindingsTableBody').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-400">No IP bindings found. Click 'Add Binding' to create one.</td></tr>`;
+            } else {
+                document.getElementById('bindingsTableBody').innerHTML = data.ipBindings.map(b => {
+                    const badgeClass = b.type.toLowerCase() === 'bypassed' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700';
+                    const statusDot = b.status === 'Active' ? 'bg-green-500' : 'bg-slate-300';
+                    
+                    return `
+                    <tr class="hover:bg-slate-50 transition group">
+                        <td class="py-3 px-4">
+                            <p class="text-sm font-bold text-slate-900">${b.owner || 'Unknown Device'}</p>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Added: ${b.dateAdded}</p>
+                        </td>
+                        <td class="py-3 px-4"><p class="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded inline-block uppercase tracking-wider">${b.mac}</p></td>
+                        <td class="py-3 px-4 text-xs font-mono text-slate-600">${b.ip || 'Dynamic'}</td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center gap-2">
+                                <div class="w-1.5 h-1.5 rounded-full ${statusDot}"></div>
+                                <span class="${badgeClass} font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wide border border-white">${b.type}</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="deleteBinding('${b.mac}')" class="text-slate-400 hover:text-red-500 p-2 transition rounded hover:bg-red-50" title="Delete Binding"><i class="fas fa-trash text-sm"></i></button>
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+
+            document.getElementById('txnTableBody').innerHTML = data.allTransactions.map(t => `
+                <tr class="hover:bg-slate-50 transition text-sm">
+                    <td class="py-3 px-4 text-slate-500 text-[11px]">${t.timestamp}</td>
+                    <td class="py-3 px-4 font-bold text-slate-800">${t.phone}</td>
+                    <td class="py-3 px-4 text-slate-600">${t.package}</td>
+                    <td class="py-3 px-4 font-bold text-green-600">KES ${t.amount || 0}</td>
+                    <td class="py-3 px-4 font-mono text-slate-400 text-[10px] tracking-wider">${t.ref}</td>
+                </tr>`).join('');
+
+            document.getElementById('activityFeed').innerHTML = data.recentTransactions.slice(0, 5).map(t => `
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 rounded-full ${t.amount > 0 ? 'bg-green-500' : 'bg-orange-500'}"></div>
+                        <div class="text-xs font-bold text-slate-700">${t.phone}</div>
+                    </div>
+                    <div class="text-green-600 font-bold text-xs">+ KES ${t.amount || 0}</div>
+                </div>`).join('');
+            
+            updateChart(data.packageStats);
+        }
+
+        function filterUserView(type) {
+            document.querySelectorAll('#usersTab .table-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${type.toLowerCase()}`).classList.add('active');
+
+            let filteredData = allUsersData;
+            if (type === 'Hotspot') filteredData = allUsersData.filter(user => user.type === 'Hotspot');
+            else if (type === 'PPPoE') filteredData = allUsersData.filter(user => user.type === 'PPPoE');
+            else if (type === 'Paused') filteredData = allUsersData.filter(user => user.status === 'Paused' || user.status === 'Disabled');
+
+            renderUserTable(filteredData);
+        }
+
+        function renderUserTable(dataArray) {
+            if (dataArray.length === 0) {
+                document.getElementById('userTableBody').innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-400">No users found in this category.</td></tr>`;
+                return;
+            }
+
+            document.getElementById('userTableBody').innerHTML = dataArray.map(t => {
+                const mainIdentifier = t.type === 'PPPoE' ? t.clientName : t.phone;
+                const subIdentifier = t.type === 'PPPoE' ? t.username : `Code: ${t.code}`;
+                const initial = mainIdentifier.toString().substring(0, 2).toUpperCase();
+                const isPPPoE = t.type === 'PPPoE';
+                
+                const avatarColor = isPPPoE ? 'bg-purple-100 text-purple-600' : (t.ref === 'ADMIN-MANUAL' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600');
+                const networkMain = isPPPoE ? `IP: ${t.ip || 'Dynamic'}` : (t.ref === 'ADMIN-MANUAL' ? 'Walk-in / Manual' : `Ref: ${t.ref}`);
+                const networkSub = isPPPoE ? `Expires: ${t.expiry || '---'}` : t.timestamp;
+
+                let statusBadge = '';
+                if (t.status === 'Active') {
+                    statusBadge = `<span class="bg-green-100 text-green-700 border border-green-200 font-bold px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wide">Active</span>`;
+                } else if (t.status === 'Expired') {
+                    statusBadge = `<span class="bg-red-50 text-red-600 border border-red-200 font-bold px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wide">Expired</span>`;
+                } else {
+                    statusBadge = `<span class="bg-slate-100 text-slate-600 border border-slate-200 font-bold px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wide">${t.status}</span>`;
+                }
+
+                const actionId = isPPPoE ? t.username : t.code;
+
+                return `
+                <tr class="hover:bg-slate-50 transition group">
+                    <td class="py-3 px-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full ${avatarColor} flex items-center justify-center font-black text-[10px] shrink-0">${initial}</div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-900 leading-tight truncate max-w-[150px]">${mainIdentifier}</p>
+                                <p class="text-[10px] font-mono text-slate-400 mt-0.5"><span class="font-bold text-slate-600 tracking-wider">${subIdentifier}</span></p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4">
+                        <p class="text-sm font-bold text-slate-700">${t.package}</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mt-0.5">${t.type}</p>
+                    </td>
+                    <td class="py-3 px-4">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase truncate max-w-[120px]">${networkMain}</p>
+                        <p class="text-[9px] text-slate-400 mt-1">${networkSub}</p>
+                    </td>
+                    <td class="py-3 px-4">${statusBadge}</td>
+                    <td class="py-3 px-4 text-right space-x-1">
+                        <button onclick="adminAction('${actionId}', 'activate', '${t.type}')" class="text-slate-400 hover:text-green-600 p-2 transition rounded hover:bg-green-50" title="Force Active"><i class="fas fa-play text-sm"></i></button>
+                        <button onclick="adminAction('${actionId}', 'deactivate', '${t.type}')" class="text-slate-400 hover:text-red-600 p-2 transition rounded hover:bg-red-50" title="Disconnect"><i class="fas fa-stop text-sm"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function addBinding() {
+            const owner = document.getElementById('bindOwner').value;
+            const mac = document.getElementById('bindMac').value.toUpperCase();
+            const ip = document.getElementById('bindIp').value;
+            const type = document.getElementById('bindType').value;
+            
+            if(!owner || !mac) return showStatus("Owner and MAC required", "bg-red-500");
+            
+            showStatus("Saving Binding...", "bg-blue-600");
+            try {
+                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addBinding", owner, mac, ip, type }) });
+                if((await res.json()).status === "success") { hideBindingModal(); fetchAdminData(); showStatus("Binding Saved!", "bg-green-600"); }
+            } catch(e) { showStatus("Error saving", "bg-red-500"); }
+        }
+
+        async function deleteBinding(mac) {
+            showStatus("Deleting...", "bg-slate-700");
+            try {
+                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteBinding", mac }) });
+                if((await res.json()).status === "success") { fetchAdminData(); showStatus("Binding Deleted", "bg-slate-700"); }
+            } catch(e) { showStatus("Delete Failed", "bg-red-500"); }
+        }
 
         async function addPackage() {
             const name = document.getElementById('newPkgName').value;
             const price = document.getElementById('newPkgPrice').value;
             const duration = document.getElementById('newPkgDuration').value;
-
-            if(!name || !price || !duration) { 
-                showStatus("All fields required", "bg-red-500"); 
-                return; 
-            }
+            if(!name || !price || !duration) return showStatus("All fields required", "bg-red-500"); 
             
             showStatus("Saving Package...", "bg-blue-600");
             try {
-                const res = await fetch(APPS_SCRIPT_URL, { 
-                    method: "POST", 
-                    body: JSON.stringify({ action: "addPackage", name, price, duration }) 
-                });
-                const result = await res.json();
-                if(result.status === "success") { 
-                    document.getElementById('newPkgName').value = "";
-                    document.getElementById('newPkgPrice').value = "";
-                    document.getElementById('newPkgDuration').value = "";
-                    hidePackageModal(); fetchAdminData();
-                    showStatus("Package Added!", "bg-green-600"); 
+                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addPackage", name, price, duration }) });
+                if((await res.json()).status === "success") { 
+                    hidePackageModal(); fetchAdminData(); showStatus("Package Added!", "bg-green-600"); 
                 }
             } catch (e) { showStatus("Connection Error", "bg-red-500"); }
         }
 
         async function deletePackage(name) {
-            if(!confirm(`Delete package: ${name}?`)) return;
-            showStatus("Deleting...", "bg-red-500");
+            showStatus("Deleting...", "bg-slate-700");
             try {
                 const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deletePackage", name }) });
                 if((await res.json()).status === "success") { fetchAdminData(); showStatus("Package Deleted", "bg-slate-700"); }
             } catch (e) { showStatus("Delete Failed", "bg-red-500"); }
         }
 
-        async function testConnection() {
-            const statusDiv = document.getElementById('conn_status');
-            statusDiv.classList.remove('hidden', 'text-green-600', 'text-red-600');
-            statusDiv.innerText = "Testing... ⏳";
-            statusDiv.classList.add('block');
+        async function adminAction(id, type, userType) {
+            showStatus(type.toUpperCase(), "bg-slate-800");
             try {
-                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "testMTConnection" }) });
-                const result = await res.json();
-                if (result.status === "success") {
-                    statusDiv.innerText = "✅ Success: Router is Reachable!";
-                    statusDiv.classList.add('text-green-600');
-                } else {
-                    statusDiv.innerText = "❌ Error: " + result.message;
-                    statusDiv.classList.add('text-red-600');
-                }
-            } catch (e) { statusDiv.innerText = "❌ Network Error"; statusDiv.classList.add('text-red-600'); }
-        }
-
-        async function saveAndGenerateScript() {
-            const dns = document.getElementById('mt_dns').value;
-            const user = document.getElementById('mt_user').value;
-            const pass = document.getElementById('mt_pass').value;
-            if(!dns) { showStatus("DNS Required", "bg-red-500"); return; }
-            showStatus("Saving Config...", "bg-blue-600");
-            try {
-                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "saveRouterConfig", dns, user, pass }) });
-                const result = await res.json();
-                if(result.status === "success") { generateMTScript(user, pass, dns); showStatus("Config Saved!", "bg-green-600"); }
-            } catch (e) { showStatus("Save Failed", "bg-red-500"); }
-        }
-
-        function generateMTScript(user, pass, dns) {
-            const script = `# ==========================================
-# MIKROTIK AUTO-CONFIG FOR ISP PORTAL
-# Generated for Cloud DNS: ${dns}
-# ==========================================
-
-# 1. CREATE API USER
-/user add name="${user}" group=full password="${pass}" comment="Billing API User"
-
-# 2. ENABLE SERVICES & CLOUD DDNS
-/ip service set api disabled=no port=8728
-/ip service set api-ssl disabled=no port=8729
-/ip service set www disabled=no port=80
-/ip service set www-ssl disabled=no port=443
-/ip cloud set ddns-enabled=yes
-/ip cloud force-update
-
-# 3. FIREWALL RULES (ALLOW INBOUND MGMT)
-/ip firewall filter add chain=input protocol=tcp dst-port=443 action=accept comment="Allow WebFig" place-before=0
-/ip firewall filter add chain=input protocol=tcp dst-port=8291 action=accept comment="Allow WinBox" place-before=0
-/ip firewall filter add chain=input protocol=tcp dst-port=8728 action=accept comment="Allow Billing API" place-before=0
-
-# 4. ANTI-TETHERING
-/ip firewall mangle add chain=postrouting action=change-ttl new-ttl=set:1 passthrough=yes comment="Prevent Sharing"
-
-# 5. WALLED GARDEN
-/ip hotspot walled-garden
-add dst-host="mrsnookum.github.io" action=allow
-add dst-host="*.github.io" action=allow
-add dst-host="script.google.com" action=allow
-add dst-host="*.google.com" action=allow
-add dst-host="backend.payhero.co.ke" action=allow
-
-# 6. AUTHENTICATION
-/ip hotspot profile set [find default=yes] login-by=http-pap,mac dns-name="snookum.wifi"`;
-            document.getElementById('mt_script_output').innerText = script;
-        }
-
-        function openWinBox() {
-            const dns = document.getElementById('mt_dns').value;
-            if(!dns) return showStatus("Enter DNS first", "bg-red-500");
-            window.location.href = `telnet://${dns}:8291`;
-        }
-
-        function openWebFig() {
-            const dns = document.getElementById('mt_dns').value;
-            if(!dns) return showStatus("Enter DNS first", "bg-red-500");
-            window.open(`http://${dns}`, '_blank');
-        }
-
-        function copyMTCode() { navigator.clipboard.writeText(document.getElementById('mt_script_output').innerText); showStatus("Copied", "bg-blue-600"); }
-
-        function checkLogin() {
-            if (document.getElementById('adminPassInput').value === ADMIN_PASSWORD) {
-                document.getElementById('loginOverlay').classList.add('hidden');
-                document.getElementById('mainDashboard').classList.remove('blur-md', 'opacity-0', 'pointer-events-none');
-                fetchAdminData();
-            } else { document.getElementById('loginError').classList.remove('hidden'); }
-        }
-
-        function updateUI(data) {
-            document.getElementById('totalSales').innerText = `KES ${data.totalRevenue}`;
-            document.getElementById('incomeToday').innerText = `KES ${data.incomeToday}`;
-            document.getElementById('activeUsers').innerText = data.activeCount;
-            document.getElementById('popularPkg').innerText = data.popularPlan;
-            document.getElementById('totalCount').innerText = data.totalTransactions;
-
-            document.getElementById('adminTableBody').innerHTML = data.recentTransactions.map(t => {
-                let statusClass = t.status === 'Active' ? 'status-active' : (t.status === 'Expired' ? 'status-expired' : 'status-disabled');
-                return `<tr class="border-b hover:bg-slate-50 transition text-sm">
-                    <td class="p-4 font-medium">${t.phone}</td><td class="p-4 text-slate-500">${t.package}</td>
-                    <td class="p-4 font-mono font-bold text-blue-600 tracking-widest text-center">${t.code}</td>
-                    <td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-black uppercase ${statusClass}">${t.status}</span></td>
-                    <td class="p-4 text-right space-x-1">
-                        <button onclick="adminAction('${t.code}', 'activate')" class="bg-green-500 text-white p-1.5 rounded-lg text-[10px]"><i class="fas fa-play"></i></button>
-                        <button onclick="adminAction('${t.code}', 'deactivate')" class="bg-red-400 text-white p-1.5 rounded-lg text-[10px]"><i class="fas fa-stop"></i></button>
-                    </td></tr>`;
-            }).join('');
-
-            document.getElementById('txnTableBody').innerHTML = data.allTransactions.map(t => `<tr class="border-b text-xs hover:bg-slate-50 transition"><td class="p-4 text-slate-400">${t.timestamp}</td><td class="p-4 font-bold text-slate-700">${t.phone}</td><td class="p-4">${t.package}</td><td class="p-4 text-green-600 font-bold">KES ${t.amount || 0}</td><td class="p-4 font-mono text-slate-400 text-[10px] tracking-tighter">${t.ref}</td></tr>`).join('');
-            document.getElementById('activityFeed').innerHTML = data.recentTransactions.slice(0, 5).map(t => `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2"><div class="text-[10px] font-bold text-slate-700">${t.code}</div><div class="text-blue-500 font-bold text-[10px]">+ KES ${t.amount || 0}</div></div>`).join('');
-            updateChart(data.packageStats);
+                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: type, code: id, userType: userType }) });
+                if((await res.json()).status === "success") fetchAdminData();
+            } catch (e) { showStatus("Failed", "bg-red-500"); }
         }
 
         async function generateManual() {
@@ -545,18 +1085,54 @@ add dst-host="backend.payhero.co.ke" action=allow
             } catch (e) { showStatus("ERROR", "bg-red-500"); }
         }
 
-        async function adminAction(code, type) {
-            showStatus(type.toUpperCase(), "bg-slate-800");
+        async function saveAndGenerateScript() {
+            const dns = document.getElementById('mt_dns').value;
+            const user = document.getElementById('mt_user').value;
+            const pass = document.getElementById('mt_pass').value;
+            if(!dns) return showStatus("DNS Required", "bg-red-500");
+            showStatus("Saving Config...", "bg-blue-600");
             try {
-                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: type, code: code }) });
-                if((await res.json()).status === "success") fetchAdminData();
-            } catch (e) { showStatus("Failed", "bg-red-500"); }
+                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "saveRouterConfig", dns, user, pass }) });
+                if((await res.json()).status === "success") { generateMTScript(user, pass, dns); showStatus("Config Saved!", "bg-green-600"); }
+            } catch (e) { showStatus("Save Failed", "bg-red-500"); }
         }
 
-        function filterTable(bodyId) {
-            const tr = document.getElementById(bodyId).getElementsByTagName("tr");
-            const input = event.target.value.toUpperCase();
-            for (let i = 0; i < tr.length; i++) { tr[i].style.display = tr[i].textContent.toUpperCase().includes(input) ? "" : "none"; }
+        async function testConnection() {
+            const statusDiv = document.getElementById('conn_status');
+            statusDiv.classList.remove('hidden', 'text-green-600', 'text-red-600');
+            statusDiv.innerText = "Testing... ⏳"; statusDiv.classList.add('block');
+            try {
+                const res = await fetch(APPS_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "testMTConnection" }) });
+                const result = await res.json();
+                if (result.status === "success") { statusDiv.innerText = "✅ Router is Reachable!"; statusDiv.classList.add('text-green-600'); } 
+                else { statusDiv.innerText = "❌ Error: " + result.message; statusDiv.classList.add('text-red-600'); }
+            } catch (e) { statusDiv.innerText = "❌ Network Error"; statusDiv.classList.add('text-red-600'); }
+        }
+
+        function generateMTScript(user, pass, dns) {
+            const script = `# ==========================================
+# MIKROTIK AUTO-CONFIG FOR ISP PORTAL
+# Generated for Cloud DNS: ${dns}
+# ==========================================
+/user add name="${user}" group=full password="${pass}" comment="Billing API User"
+/ip service set api disabled=no port=8728
+/ip service set api-ssl disabled=no port=8729
+/ip service set www disabled=no port=80
+/ip service set www-ssl disabled=no port=443
+/ip cloud set ddns-enabled=yes
+/ip cloud force-update
+/ip firewall filter add chain=input protocol=tcp dst-port=443 action=accept comment="Allow WebFig" place-before=0
+/ip firewall filter add chain=input protocol=tcp dst-port=8291 action=accept comment="Allow WinBox" place-before=0
+/ip firewall filter add chain=input protocol=tcp dst-port=8728 action=accept comment="Allow Billing API" place-before=0
+/ip firewall mangle add chain=postrouting action=change-ttl new-ttl=set:1 passthrough=yes comment="Prevent Sharing"
+/ip hotspot walled-garden
+add dst-host="mrsnookum.github.io" action=allow
+add dst-host="*.github.io" action=allow
+add dst-host="script.google.com" action=allow
+add dst-host="*.google.com" action=allow
+add dst-host="backend.payhero.co.ke" action=allow
+/ip hotspot profile set [find default=yes] login-by=http-pap,mac dns-name="snookum.wifi"`;
+            document.getElementById('mt_script_output').innerText = script;
         }
 
         function showStatus(msg, color) {
@@ -565,19 +1141,18 @@ add dst-host="backend.payhero.co.ke" action=allow
             setTimeout(() => el.style.display = 'none', 3000);
         }
 
-        function updateChart(stats) {
-            const ctx = document.getElementById('pkgChart').getContext('2d');
-            if(chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: { labels: Object.keys(stats), datasets: [{ label: 'Sales', data: Object.values(stats), backgroundColor: '#3b82f6', borderRadius: 6 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-        }
-        
-        function closeSuccessModal() { document.getElementById('successModal').classList.add('hidden'); }
+        function openWinBox() { const dns = document.getElementById('mt_dns').value; if(dns) window.location.href = `telnet://${dns}:8291`; }
+        function openWebFig() { const dns = document.getElementById('mt_dns').value; if(dns) window.open(`http://${dns}`, '_blank'); }
+        function copyMTCode() { navigator.clipboard.writeText(document.getElementById('mt_script_output').innerText); showStatus("Copied", "bg-blue-600"); }
+        function showPackageModal() { document.getElementById('pkgModal').classList.remove('hidden'); }
+        function hidePackageModal() { document.getElementById('pkgModal').classList.add('hidden'); }
         function showManualModal() { document.getElementById('manualModal').classList.remove('hidden'); }
         function hideManualModal() { document.getElementById('manualModal').classList.add('hidden'); }
+        function showBindingModal() { document.getElementById('bindingModal').classList.remove('hidden'); }
+        function hideBindingModal() { document.getElementById('bindingModal').classList.add('hidden'); }
+        function showSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
+        function hideSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+        function closeSuccessModal() { document.getElementById('successModal').classList.add('hidden'); }
     </script>
 </body>
 </html>
